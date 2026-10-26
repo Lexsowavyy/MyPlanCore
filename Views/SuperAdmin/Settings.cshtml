@@ -1,0 +1,157 @@
+@model PlanCore.Web.ViewModels.SuperAdminSettingsViewModel
+@{
+    var msg = Model.Message ?? "";
+    var isError = msg.Contains("must be");
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-cogs"></i> System Settings</h2>
+        <p class="page-subtitle">Configure global system parameters.</p>
+    </div>
+
+    <form method="post" action="/superadmin/settings/save" class="settings-form">
+        <div class="settings-section">
+            <div class="section-title"><i class="fas fa-shield-alt"></i> Account Security</div>
+            <div class="settings-card">
+                <div class="settings-row">
+                    <div>
+                        <label class="settings-label">Password Expiry</label>
+                        <p class="settings-desc">Force users to change their password after a set number of days.</p>
+                    </div>
+                    <input type="hidden" name="passwordExpiry" value="false" />
+                    <label class="toggle">
+                        <input type="checkbox" name="passwordExpiry" value="true" checked="@(Model.PasswordExpiry ? "checked" : null)" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settings-row" id="passwordExpiryRow" style="@(Model.PasswordExpiry ? "" : "display:none;")">
+                    <div style="flex:1;">
+                        <label class="settings-label">Password Expiry Days</label>
+                        <p class="settings-desc">Number of days before a password must be changed.</p>
+                        <input type="range" name="passwordExpiryDays" id="passwordExpiryDays" min="7" max="365" step="1" value="@Model.PasswordExpiryDays" style="width:100%;" />
+                        <div class="range-values"><span>7 days</span><span class="range-current" id="passwordExpiryDaysValue">@Model.PasswordExpiryDays days</span><span>365 days</span></div>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <label class="settings-label">Session Timeout</label>
+                        <p class="settings-desc">Automatically sign out inactive users after this duration.</p>
+                    </div>
+                    <select name="sessionTimeout" class="settings-select">
+                        <option value="5" selected="@(Model.SessionTimeout == 5 ? "selected" : null)">5 minutes</option>
+                        <option value="10" selected="@(Model.SessionTimeout == 10 ? "selected" : null)">10 minutes</option>
+                        <option value="15" selected="@(Model.SessionTimeout == 15 ? "selected" : null)">15 minutes</option>
+                        <option value="30" selected="@(Model.SessionTimeout == 30 ? "selected" : null)">30 minutes</option>
+                        <option value="60" selected="@(Model.SessionTimeout == 60 ? "selected" : null)">1 hour</option>
+                        <option value="120" selected="@(Model.SessionTimeout == 120 ? "selected" : null)">2 hours</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="section-title"><i class="fas fa-tools"></i> Maintenance</div>
+            <div class="settings-card">
+                <div class="settings-row">
+                    <div>
+                        <label class="settings-label">Maintenance Mode</label>
+                        <p class="settings-desc">Temporarily disable access to non-admin users during maintenance.</p>
+                    </div>
+                    <input type="hidden" name="maintenanceMode" value="false" />
+                    <label class="toggle">
+                        <input type="checkbox" name="maintenanceMode" value="true" checked="@(Model.MaintenanceMode ? "checked" : null)" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-actions">
+            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Settings</button>
+            <a href="/superadmin/settings/reset" class="btn-secondary" onclick="return confirm('Reset all settings to defaults?');">
+                <i class="fas fa-undo"></i> Reset to Defaults
+            </a>
+        </div>
+    </form>
+</div>
+
+@if (!string.IsNullOrEmpty(msg))
+{
+    <div class="toast @(isError ? "toast-error" : "toast-success")" id="toastNotification">
+        <i class="fas @(isError ? "fa-exclamation-circle" : "fa-check-circle")"></i>
+        <span>@msg</span>
+    </div>
+}
+
+<script>
+    (function () {
+        var expiryToggle = document.querySelector('input[name="passwordExpiry"]');
+        var expiryRow = document.getElementById('passwordExpiryRow');
+        if (expiryToggle && expiryRow) {
+            expiryToggle.addEventListener('change', function () {
+                expiryRow.style.display = expiryToggle.checked ? '' : 'none';
+            });
+        }
+        var slider = document.getElementById('passwordExpiryDays');
+        var sliderValue = document.getElementById('passwordExpiryDaysValue');
+        if (slider && sliderValue) {
+            slider.addEventListener('input', function () {
+                sliderValue.textContent = slider.value + ' days';
+            });
+        }
+        var toast = document.getElementById('toastNotification');
+        if (toast) {
+            setTimeout(function () {
+                toast.classList.add('toast-hide');
+                setTimeout(function () { toast.remove(); }, 350);
+            }, 3000);
+        }
+    })();
+</script>
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; }
+    .page-header { margin-bottom:20px; flex-shrink:0; }
+    .page-title { margin:0 0 4px 0; font-size:24px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#f59e0b; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+
+    .settings-form { display:flex; flex-direction:column; gap:24px; flex:1; overflow-y:auto; }
+    .settings-section { display:flex; flex-direction:column; gap:12px; }
+    .section-title { font-size:16px; font-weight:700; color:#334155; display:flex; align-items:center; gap:10px; }
+    .section-title i { color:#f59e0b; font-size:15px; }
+
+    .settings-card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #e2e8f0; padding:8px 24px; }
+    .settings-row { display:flex; justify-content:space-between; align-items:center; padding:20px 0; border-bottom:1px solid #f1f5f9; gap:24px; }
+    .settings-row:last-child { border-bottom:none; }
+    .settings-label { font-size:15px; font-weight:600; color:#334155; margin:0; }
+    .settings-desc { margin:4px 0 0 0; font-size:13px; color:#94a3b8; }
+
+    .toggle { position:relative; display:inline-block; width:50px; height:28px; flex-shrink:0; cursor:pointer; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#cbd5e1; border-radius:34px; transition:0.3s; }
+    .slider:before { position:absolute; content:""; height:22px; width:22px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:0.3s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+    .toggle input:checked + .slider { background:linear-gradient(135deg,#f59e0b,#d97706); }
+    .toggle input:checked + .slider:before { transform:translateX(22px); }
+
+    .settings-select { height:40px; padding:0 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; color:#475569; background:#fff; font-weight:500; min-width:150px; box-sizing:border-box; }
+    .settings-select:focus { outline:none; border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,0.1); }
+
+    .range-values { display:flex; justify-content:space-between; font-size:12px; color:#94a3b8; margin-top:6px; }
+    .range-current { font-weight:600; color:#f59e0b; }
+    input[type="range"] { accent-color:#f59e0b; cursor:pointer; }
+
+    .settings-actions { display:flex; gap:12px; padding-bottom:24px; flex-shrink:0; }
+    .btn-primary { height:42px; padding:0 24px; border:none; border-radius:8px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; text-decoration:none; box-sizing:border-box; }
+    .btn-primary:hover { opacity:0.92; }
+    .btn-secondary { height:42px; padding:0 24px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#64748b; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; text-decoration:none; box-sizing:border-box; }
+    .btn-secondary:hover { background:#f8fafc; }
+
+    .toast { position:fixed; top:20px; right:20px; padding:14px 20px; border-radius:10px; font-size:14px; font-weight:500; z-index:99999; display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); animation:toastIn 0.3s ease; }
+    .toast-success { background:#16a34a; color:#fff; }
+    .toast-error { background:#dc2626; color:#fff; }
+    .toast-hide { opacity:0; transform:translateX(20px); transition:all 0.35s ease; }
+    @@keyframes toastIn { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+
+    @@media (max-width:768px) { .settings-row { flex-direction:column; align-items:flex-start; } .settings-actions { flex-direction:column; } }
+</style>

@@ -1,0 +1,378 @@
+@model PlanCore.Web.ViewModels.ArchitectArchivedViewModel
+@functions {
+    public string GetDesignImageSrc(PlanCoreMAUI.Models.ArchitectDesign? design)
+    {
+        if (design?.FileData == null || design.FileData.Length == 0) return "";
+        var base64 = Convert.ToBase64String(design.FileData);
+        var mime = design.FileName?.EndsWith(".png") == true ? "image/png" : "image/jpeg";
+        return $"data:{mime};base64,{base64}";
+    }
+
+    public DateTime? GetDesignReviewTimestamp(PlanCoreMAUI.Models.ArchitectDesign? d) => d?.Status switch
+    {
+        "Approved" or "Accepted" => d.ApprovedOn,
+        "Rejected" => d.RejectedOn,
+        "Revised" => d.RevisedOn,
+        _ => null
+    };
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-archive"></i> Archived Module</h2>
+        <p class="page-subtitle">Restore or view archived items</p>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom:16px;">
+        <div class="archive-tabs">
+            <a class="archive-tab-btn @(Model.ActiveTab == "designs" ? "active" : "")" href="/architect/archived?tab=designs">
+                Archived Designs
+            </a>
+            <a class="archive-tab-btn @(Model.ActiveTab == "revisions" ? "active" : "")" href="/architect/archived?tab=revisions">
+                Archived Revisions
+            </a>
+            <a class="archive-tab-btn @(Model.ActiveTab == "tasks" ? "active" : "")" href="/architect/archived?tab=tasks">
+                Archived Tasks
+            </a>
+        </div>
+    </div>
+
+    @if (Model.ActiveTab == "designs")
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-drafting-compass"></i> Archived Designs</span>
+                <span class="item-count">@Model.ArchivedDesigns.Count items</span>
+            </div>
+            <div class="table-scroll">
+                <table class="project-table">
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Design</th>
+                            <th>Project</th>
+                            <th>Status</th>
+                            <th>Date & Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.ArchivedDesigns.Any())
+                        {
+                            <tr><td colspan="6" class="text-center py-5 text-muted">No archived designs</td></tr>
+                        }
+                        else
+                        {
+                            foreach (var d in Model.ArchivedDesigns)
+                            {
+                                <tr>
+                                    <td><span class="id-cell">DSN-@(d.DesignID.ToString("D4"))</span></td>
+                                    <td><span class="project-cell">@d.DesignTitle</span></td>
+                                    <td>@d.Project</td>
+                                    <td><span class="badge">@d.Status</span></td>
+                                    <td>@(d.ArchivedOn?.ToString("MMM d, yyyy h:mm tt"))</td>
+                                    <td>
+                                        <a class="icon-btn" title="View" href="/architect/archived?tab=@Model.ActiveTab&viewType=design&viewId=@d.DesignID"><i class="fas fa-eye"></i></a>
+                                        <a class="icon-btn" title="Restore" href="/architect/archived?tab=@Model.ActiveTab&restoreType=design&restoreId=@d.DesignID"><i class="fas fa-undo"></i></a>
+                                        <a class="icon-btn" title="Delete" href="/architect/archived?tab=@Model.ActiveTab&deleteType=design&deleteId=@d.DesignID"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (Model.ActiveTab == "revisions")
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-pencil-ruler"></i> Archived Revisions</span>
+                <span class="item-count">@Model.ArchivedRevisions.Count items</span>
+            </div>
+            <div class="table-scroll">
+                <table class="project-table">
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Request</th>
+                            <th>Project</th>
+                            <th>Status</th>
+                            <th>Date & Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.ArchivedRevisions.Any())
+                        {
+                            <tr><td colspan="6" class="text-center py-5 text-muted">No archived revisions</td></tr>
+                        }
+                        else
+                        {
+                            foreach (var r in Model.ArchivedRevisions)
+                            {
+                                <tr>
+                                    <td><span class="id-cell">REV-@(r.RevisionID.ToString("D4"))</span></td>
+                                    <td><span class="project-cell">@r.ChangeRequest</span></td>
+                                    <td>@r.Project</td>
+                                    <td><span class="badge">@r.Status</span></td>
+                                    <td>@(r.ArchivedOn?.ToString("MMM d, yyyy h:mm tt"))</td>
+                                    <td>
+                                        <a class="icon-btn" title="View" href="/architect/archived?tab=@Model.ActiveTab&viewType=revision&viewId=@r.RevisionID"><i class="fas fa-eye"></i></a>
+                                        <a class="icon-btn" title="Restore" href="/architect/archived?tab=@Model.ActiveTab&restoreType=revision&restoreId=@r.RevisionID"><i class="fas fa-undo"></i></a>
+                                        <a class="icon-btn" title="Delete" href="/architect/archived?tab=@Model.ActiveTab&deleteType=revision&deleteId=@r.RevisionID"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (Model.ActiveTab == "tasks")
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-tasks"></i> Archived Tasks</span>
+                <span class="item-count">@Model.ArchivedTasks.Count items</span>
+            </div>
+            <div class="table-scroll">
+                <table class="project-table">
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Task</th>
+                            <th>Project</th>
+                            <th>Status</th>
+                            <th>Date & Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.ArchivedTasks.Any())
+                        {
+                            <tr><td colspan="6" class="text-center py-5 text-muted">No archived tasks</td></tr>
+                        }
+                        else
+                        {
+                            foreach (var t in Model.ArchivedTasks)
+                            {
+                                <tr>
+                                    <td><span class="id-cell">TSK-@(t.Id.ToString("D4"))</span></td>
+                                    <td><span class="project-cell">@t.Name</span></td>
+                                    <td>@t.Project</td>
+                                    <td><span class="badge">@t.Status</span></td>
+                                    <td>@(t.ArchivedOn?.ToString("MMM d, yyyy h:mm tt"))</td>
+                                    <td>
+                                        <a class="icon-btn" title="View" href="/architect/archived?tab=@Model.ActiveTab&viewType=task&viewId=@t.Id"><i class="fas fa-eye"></i></a>
+                                        <a class="icon-btn" title="Restore" href="/architect/archived?tab=@Model.ActiveTab&restoreType=task&restoreId=@t.Id"><i class="fas fa-undo"></i></a>
+                                        <a class="icon-btn" title="Delete" href="/architect/archived?tab=@Model.ActiveTab&deleteType=task&deleteId=@t.Id"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.ShowViewModal && Model.ActiveTab == "designs" && Model.SelectedDesign != null)
+{
+    var selectedDesign = Model.SelectedDesign;
+    <div class="modal-overlay" onclick="window.location.href='/architect/archived?tab=@Model.ActiveTab'">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fas fa-drafting-compass" style="color:#8b5cf6;"></i> Design Details</h3>
+                <a type="button" class="modal-close" href="/architect/archived?tab=@Model.ActiveTab"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row"><span class="detail-label">Design</span><span class="detail-value">@selectedDesign.DesignTitle</span></div>
+                <div class="detail-row"><span class="detail-label">Project</span><span class="detail-value">@selectedDesign.Project</span></div>
+                <div class="detail-row"><span class="detail-label">Location</span><span class="detail-value">@selectedDesign.Location</span></div>
+                <div class="detail-row"><span class="detail-label">Version</span><span class="detail-value">@selectedDesign.Version</span></div>
+                <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">@selectedDesign.Status</span></div>
+                @{
+                    var dts = GetDesignReviewTimestamp(selectedDesign);
+                    if (dts.HasValue)
+                    {
+                        <div class="detail-row"><span class="detail-label">Reviewed On</span><span class="detail-value">@(dts.Value.ToString("MMM d, yyyy h:mm tt"))</span></div>
+                    }
+                }
+                <div class="detail-row"><span class="detail-label">Uploaded</span><span class="detail-value">@(selectedDesign.UploadDate.ToString("MMM d, yyyy h:mm tt"))</span></div>
+                <div class="detail-row"><span class="detail-label">Archived</span><span class="detail-value">@(selectedDesign.ArchivedOn?.ToString("MMM d, yyyy h:mm tt"))</span></div>
+                <div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value">@selectedDesign.Notes</span></div>
+                @if (selectedDesign.FileData != null && selectedDesign.FileData.Length > 0)
+                {
+                    <div class="detail-row">
+                        <span class="detail-label">Image</span>
+                        <span class="detail-value"><img src="@(GetDesignImageSrc(selectedDesign))" style="max-width:200px;max-height:200px;border-radius:8px;" /></span>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <a class="btn-cancel" href="/architect/archived?tab=@Model.ActiveTab" style="text-decoration:none;display:inline-flex;align-items:center;">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.ShowViewModal && Model.ActiveTab == "revisions" && Model.SelectedRevision != null)
+{
+    var selectedRevision = Model.SelectedRevision;
+    <div class="modal-overlay" onclick="window.location.href='/architect/archived?tab=@Model.ActiveTab'">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fas fa-pencil-ruler" style="color:#f59e0b;"></i> Revision Details</h3>
+                <a type="button" class="modal-close" href="/architect/archived?tab=@Model.ActiveTab"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row"><span class="detail-label">Request</span><span class="detail-value">@selectedRevision.ChangeRequest</span></div>
+                <div class="detail-row"><span class="detail-label">Project</span><span class="detail-value">@selectedRevision.Project</span></div>
+                <div class="detail-row"><span class="detail-label">PM Notes</span><span class="detail-value" style="white-space:pre-wrap;">@selectedRevision.RevisionNotes</span></div>
+                <div class="detail-row"><span class="detail-label">Requested By</span><span class="detail-value">@selectedRevision.RequestedBy</span></div>
+                <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">@(selectedRevision.RequestDate.ToString("MMM d, yyyy h:mm tt"))</span></div>
+                <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">@selectedRevision.Status</span></div>
+                <div class="detail-row"><span class="detail-label">Archived</span><span class="detail-value">@(selectedRevision.ArchivedOn?.ToString("MMM d, yyyy h:mm tt"))</span></div>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-cancel" href="/architect/archived?tab=@Model.ActiveTab" style="text-decoration:none;display:inline-flex;align-items:center;">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.ShowViewModal && Model.ActiveTab == "tasks" && Model.SelectedTask != null)
+{
+    var selectedTask = Model.SelectedTask;
+    <div class="modal-overlay" onclick="window.location.href='/architect/archived?tab=@Model.ActiveTab'">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fas fa-tasks" style="color:#3b82f6;"></i> Task Details</h3>
+                <a type="button" class="modal-close" href="/architect/archived?tab=@Model.ActiveTab"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row"><span class="detail-label">Task</span><span class="detail-value">@selectedTask.Name</span></div>
+                <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">@selectedTask.Description</span></div>
+                <div class="detail-row"><span class="detail-label">Project</span><span class="detail-value">@selectedTask.Project</span></div>
+                <div class="detail-row"><span class="detail-label">Location</span><span class="detail-value">@selectedTask.Location</span></div>
+                <div class="detail-row"><span class="detail-label">Priority</span><span class="detail-value">@selectedTask.Priority</span></div>
+                <div class="detail-row"><span class="detail-label">Assigned To</span><span class="detail-value">@selectedTask.AssignedTo</span></div>
+                <div class="detail-row"><span class="detail-label">Start Date</span><span class="detail-value">@(selectedTask.StartDate?.ToString("MMM d, yyyy h:mm tt"))</span></div>
+                <div class="detail-row"><span class="detail-label">Due Date</span><span class="detail-value">@(selectedTask.DueDate?.ToString("MMM d, yyyy h:mm tt"))</span></div>
+                <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">@selectedTask.Status</span></div>
+                <div class="detail-row"><span class="detail-label">Archived</span><span class="detail-value">@(selectedTask.ArchivedOn?.ToString("MMM d, yyyy h:mm tt"))</span></div>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-cancel" href="/architect/archived?tab=@Model.ActiveTab" style="text-decoration:none;display:inline-flex;align-items:center;">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.ShowRestoreConfirm)
+{
+    <div class="modal-overlay" onclick="window.location.href='/architect/archived?tab=@Model.ActiveTab'">
+        <div class="modal-content confirm-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fas fa-undo" style="color:#22c55e;"></i> Confirm Restore</h3>
+                <a type="button" class="modal-close" href="/architect/archived?tab=@Model.ActiveTab"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:32px 24px;">
+                <i class="fas fa-undo-alt" style="font-size:48px;color:#22c55e;margin-bottom:16px;"></i>
+                <p style="font-size:15px;color:#475569;margin:0;">Are you sure you want to restore this item?</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-cancel" href="/architect/archived?tab=@Model.ActiveTab" style="text-decoration:none;display:inline-flex;align-items:center;">Cancel</a>
+                <form method="post" action="/Architect/Restore">
+                    <input type="hidden" name="type" value="@Model.RestoreTargetType" />
+                    <input type="hidden" name="id" value="@Model.RestoreTargetId" />
+                    <button type="submit" class="btn-create" style="background:#22c55e;border:none;"><i class="fas fa-undo"></i> Restore</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.ShowDeleteConfirm)
+{
+    <div class="modal-overlay" onclick="window.location.href='/architect/archived?tab=@Model.ActiveTab'">
+        <div class="modal-content confirm-modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash" style="color:#ef4444;"></i> Confirm Delete</h3>
+                <a type="button" class="modal-close" href="/architect/archived?tab=@Model.ActiveTab"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:32px 24px;">
+                <i class="fas fa-exclamation-triangle" style="font-size:48px;color:#ef4444;margin-bottom:16px;"></i>
+                <p style="font-size:15px;color:#475569;margin:0;">Are you sure you want to permanently delete this item?<br/>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-cancel" href="/architect/archived?tab=@Model.ActiveTab" style="text-decoration:none;display:inline-flex;align-items:center;">Cancel</a>
+                <form method="post" action="/Architect/Delete">
+                    <input type="hidden" name="type" value="@Model.DeleteTargetType" />
+                    <input type="hidden" name="id" value="@Model.DeleteTargetId" />
+                    <button type="submit" class="btn-create" style="background:#ef4444;border:none;"><i class="fas fa-trash"></i> Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .page-container { display: flex; flex-direction: column; height: 100%; }
+    .page-header { margin-bottom: 24px; }
+    .page-title { margin: 0 0 4px 0; font-size: 24px; font-weight: 700; color: #0f172a; display: flex; align-items: center; }
+    .page-title i { margin-right: 12px; color: #8b5cf6; font-size: 22px; }
+    .page-subtitle { margin: 0; font-size: 14px; color: #64748b; }
+
+    .filter-bar { display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .archive-tabs { display: flex; gap: 10px; flex-wrap:wrap; }
+    .archive-tab-btn { padding: 10px 20px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-weight: 600; font-size: 14px; cursor: pointer; background: white; color: #64748b; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; }
+    .archive-tab-btn.active { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+    .archive-tab-btn:hover:not(.active) { background: #f1f5f9; }
+
+    .table-section { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; overflow: hidden; flex: 1 1 0; display: flex; flex-direction: column; min-height: 0; }
+    .table-header { padding: 18px 24px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; }
+    .table-header span { font-weight: 600; color: #334155; font-size: 16px; }
+    .table-header span i { margin-right: 10px; color: #8b5cf6; }
+    .item-count { font-size: 13px; color: #64748b; background: #e2e8f0; padding: 8px 14px; border-radius: 20px; white-space: nowrap; font-weight: 500; }
+    .table-scroll { flex: 1 1 0; overflow-y: auto; overflow-x: auto; }
+    .project-table { width: 100%; border-collapse: collapse; }
+    .project-table th { padding: 14px 20px; text-align: left; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    .project-table td { padding: 16px 20px; font-size: 14px; color: #475569; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+    .project-table tbody tr:hover { background: #f8fafc; }
+    .project-table tbody tr { transition: background 0.15s; }
+    .id-cell { color: #8b5cf6; font-weight: 600; }
+    .project-cell { font-weight: 600; color: #0f172a; }
+    .badge { display: inline-block; font-size: 12px; font-weight: 600; white-space: nowrap; color: #64748b; }
+    .detail-row { display: flex; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .detail-label { font-weight: 600; color: #64748b; min-width: 120px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .detail-value { color: #0f172a; flex: 1; font-size: 14px; }
+
+    .icon-btn { background: transparent; border: none; padding: 6px 8px; cursor: pointer; border-radius: 6px; color: #64748b; transition: all 0.2s; text-decoration:none; display:inline-flex; align-items:center; }
+    .icon-btn:hover { background: #f1f5f9; color: #8b5cf6; }
+    .icon-btn i { font-size: 14px; }
+    .text-muted { color: #94a3b8; }
+    .text-center { text-align: center; }
+    .py-5 { padding-top: 40px; padding-bottom: 40px; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: #fff; border-radius: 16px; width: 100%; max-width: 560px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+    .confirm-modal { max-width: 420px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; border-radius: 16px 16px 0 0; }
+    .modal-header h3 { margin: 0; font-size: 18px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 10px; }
+    .modal-close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; padding: 4px 8px; border-radius: 6px; text-decoration:none; display:inline-flex; align-items:center; }
+    .modal-close:hover { background: #fee2e2; color: #ef4444; }
+    .modal-body { padding: 24px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 20px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; border-radius: 0 0 16px 16px; }
+    .btn-cancel { height: 42px; padding: 0 24px; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #fff; color: #475569; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-cancel:hover { background: #f1f5f9; }
+    .btn-create { height: 42px; padding: 0 24px; border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-create:hover { opacity: 0.9; }
+
+    @@media (max-width: 768px) { .archive-tabs { flex-direction: column; width: 100%; } .archive-tab-btn { width: 100%; text-align: center; justify-content:center; } }
+</style>

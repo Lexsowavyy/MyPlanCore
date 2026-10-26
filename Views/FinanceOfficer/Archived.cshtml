@@ -1,0 +1,206 @@
+@model PlanCore.Web.ViewModels.FOArchivedViewModel
+@using PlanCore.Web.ViewModels
+@{
+    var filterQuery = $"type={Uri.EscapeDataString(Model.SelectedType)}&search={Uri.EscapeDataString(Model.Search ?? "")}";
+    var baseLink = $"/financeofficer/archived?{filterQuery}";
+    var items = Model.Items;
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-archive"></i> All Archived</h2>
+        <p class="page-subtitle">View, restore, or permanently delete archived expenses, income, and cash flow records</p>
+    </div>
+
+    <div class="filter-bar">
+        <div class="filter-left">
+            <a class="tab-btn @(Model.SelectedType == "all" ? "active" : "")" href="/financeofficer/archived"><i class="fas fa-archive"></i> All</a>
+            <a class="tab-btn @(Model.SelectedType == "expenses" ? "active" : "")" href="/financeofficer/archived?type=expenses"><i class="fas fa-shopping-cart"></i> Expenses</a>
+            <a class="tab-btn @(Model.SelectedType == "income" ? "active" : "")" href="/financeofficer/archived?type=income"><i class="fas fa-hand-holding-usd"></i> Income</a>
+        </div>
+        <div class="filter-right">
+            <form method="get" action="/financeofficer/archived">
+                <input type="hidden" name="type" value="@Model.SelectedType" />
+                <input type="text" name="search" placeholder="Search archived..." class="search-input" value="@Model.Search" onchange="this.form.submit()" />
+            </form>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <div class="table-header"><span><i class="fas fa-history"></i> Archived Items</span><span class="item-count">@items.Count items</span></div>
+        <div class="table-scroll">
+            <table class="project-table">
+                <thead><tr><th>TYPE</th><th>ID</th><th>PROJECT</th><th>DETAILS</th><th>AMOUNT</th><th>STATUS</th><th>ARCHIVED</th><th>ACTIONS</th></tr></thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr>
+                            <td><span class="badge-text badge-type">@item.Type</span></td>
+                            <td><span class="id-cell">@item.DisplayId</span></td>
+                            <td>@item.Project</td>
+                            <td>@item.Details</td>
+                            <td class="fw-bold @item.AmountClass">@item.AmountDisplay</td>
+                            <td><span class="badge-text @item.StatusClass">@item.Status</span></td>
+                            <td>@item.ArchivedOnDisplay</td>
+                            <td>
+                                <a class="icon-btn" title="View" href="@(baseLink)&modal=view&view=@item.OriginalId&vtype=@item.OriginalType"><i class="fas fa-eye"></i></a>
+                                <a class="icon-btn" title="Restore" href="@(baseLink)&modal=restore&id=@item.OriginalId&rtype=@item.OriginalType"><i class="fas fa-undo"></i></a>
+                                <a class="icon-btn danger" title="Delete" href="@(baseLink)&modal=delete&id=@item.OriginalId&dtype=@item.OriginalType"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!items.Any())
+                    {
+                        <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:40px;"><i class="fas fa-archive" style="font-size:32px;opacity:0.25;display:block;margin-bottom:12px;"></i>No archived items found</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.Modal == "view")
+{
+    <div class="modal-overlay">
+        <div class="modal-content view-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> @Model.Title</h3>
+                <a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                @if (Model.ViewExpense != null)
+                {
+                    var e = Model.ViewExpense;
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Expense ID</span><span class="detail-value">EXP-@(e.Id.ToString("D3"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Project</span><span class="detail-value">@e.Project</span></div>
+                        <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">@e.Category</span></div>
+                        <div class="detail-item"><span class="detail-label">Amount</span><span class="detail-value fw-bold">@(e.Amount.ToString("N0"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">@e.Status</span></div>
+                        <div class="detail-item"><span class="detail-label">Date</span><span class="detail-value">@(e.ExpenseDate.ToString("MMM dd, yyyy h:mm tt"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Archived On</span><span class="detail-value">@(e.ArchivedOn?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Description</span><span class="detail-value">@(e.Description ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Notes</span><span class="detail-value">@(e.Notes ?? "-")</span></div>
+                    </div>
+                }
+                @if (Model.ViewIncome != null)
+                {
+                    var i = Model.ViewIncome;
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Income ID</span><span class="detail-value">INC-@(i.Id.ToString("D3"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Project</span><span class="detail-value">@i.Project</span></div>
+                        <div class="detail-item"><span class="detail-label">Amount</span><span class="detail-value fw-bold">@(i.Amount.ToString("N0"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">@i.Status</span></div>
+                        <div class="detail-item"><span class="detail-label">Archived On</span><span class="detail-value">@(i.ArchivedOn?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Description</span><span class="detail-value">@i.Description</span></div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <a class="btn-secondary" href="@baseLink">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.Modal == "restore" && Model.RestoreId > 0)
+{
+    <div class="modal-overlay">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header"><h3><i class="fas fa-undo" style="color:#2563eb;"></i> Restore Item</h3><a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a></div>
+            <div class="modal-body" style="text-align:center;padding:32px;">
+                <i class="fas fa-archive" style="font-size:48px;color:#2563eb;opacity:0.5;margin-bottom:16px;display:block;"></i>
+                <p style="font-size:15px;color:#475569;margin:0 0 8px;">Are you sure you want to restore this item?</p>
+                <p style="font-size:13px;color:#94a3b8;margin:0;">It will be moved back to its active module.</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-secondary" href="@baseLink">Cancel</a>
+                <form method="post" action="/FinanceOfficer/RestoreItem" style="margin:0;">
+                    <input type="hidden" name="id" value="@Model.RestoreId" />
+                    <input type="hidden" name="type" value="@Model.RestoreType" />
+                    <button type="submit" class="btn-confirm"><i class="fas fa-undo"></i> Restore</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.Modal == "delete" && Model.DeleteId > 0)
+{
+    <div class="modal-overlay">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header"><h3><i class="fas fa-trash" style="color:#dc2626;"></i> Delete Permanently</h3><a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a></div>
+            <div class="modal-body" style="text-align:center;padding:32px;">
+                <i class="fas fa-exclamation-triangle" style="font-size:48px;color:#dc2626;opacity:0.5;margin-bottom:16px;display:block;"></i>
+                <p style="font-size:15px;color:#475569;margin:0 0 8px;">This action cannot be undone.</p>
+                <p style="font-size:13px;color:#94a3b8;margin:0;">The data will be permanently removed from the system.</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-secondary" href="@baseLink">Cancel</a>
+                <form method="post" action="/FinanceOfficer/DeleteItem" style="margin:0;">
+                    <input type="hidden" name="id" value="@Model.DeleteId" />
+                    <input type="hidden" name="type" value="@Model.DeleteType" />
+                    <button type="submit" class="btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; padding:24px; }
+    .page-header { margin-bottom:24px; flex-shrink:0; }
+    .page-title { margin:0 0 6px; font-size:26px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#8b5cf6; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+    .filter-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-shrink:0; flex-wrap:wrap; gap:12px; }
+    .filter-left { display:flex; gap:10px; flex-wrap:wrap; }
+    .filter-right { display:flex; align-items:center; gap:12px; }
+    .search-input { width:240px; height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; box-sizing:border-box; }
+    .search-input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+    .tab-btn { height:40px; padding:8px 20px; border-radius:8px; border:1.5px solid #e2e8f0; font-weight:600; font-size:0.82rem; cursor:pointer; background:white; color:#64748b; transition:all 0.2s; display:flex; align-items:center; gap:8px; text-decoration:none; box-sizing:border-box; }
+    .tab-btn.active { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; border-color:#8b5cf6; }
+    .tab-btn:hover:not(.active) { background:#f1f5f9; }
+    .table-section { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; overflow:hidden; flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
+    .table-header { padding:18px 24px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center; }
+    .table-header span { font-weight:600; color:#334155; font-size:16px; display:flex; align-items:center; gap:10px; }
+    .table-header .item-count { font-size:13px; color:#64748b; background:#e2e8f0; padding:8px 14px; border-radius:20px; white-space:nowrap; font-weight:500; }
+    .table-scroll { flex:1 1 0; overflow-y:auto; overflow-x:auto; }
+    .project-table { width:100%; border-collapse:collapse; }
+    .project-table th { background:#f8fafc; padding:14px 16px; text-align:left; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+    .project-table td { padding:14px 16px; font-size:13px; color:#475569; border-bottom:1px solid #f1f5f9; white-space:nowrap; }
+    .project-table tbody tr:nth-child(even) { background:#f8fafc; }
+    .project-table tbody tr:nth-child(odd) { background:#ffffff; }
+    .project-table tbody tr:hover { background:#e2e8f0; }
+    .id-cell { color:#8b5cf6; font-weight:600; }
+    .icon-btn { background:none; border:none; cursor:pointer; padding:8px; color:#94a3b8; font-size:15px; transition:color 0.15s; text-decoration:none; display:inline-block; }
+    .icon-btn:hover { color:#3b82f6; }
+    .icon-btn.danger:hover { color:#dc2626; }
+    .badge-text { font-size:11px; font-weight:600; }
+    .badge-type { display:inline-block; padding:4px 12px; border-radius:20px; background:#f1f5f9; color:#475569; font-weight:600; font-size:11px; }
+    .badge-green { color:#16a34a; } .badge-yellow { color:#d97706; } .badge-red { color:#dc2626; } .badge-blue { color:#2563eb; } .badge-teal { color:#0d9488; } .badge-purple { color:#7c3aed; } .badge-orange { color:#ea580c; }
+    .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .modal-content { background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:85vh; overflow-y:auto; }
+    .view-modal { width:600px; max-width:90vw; }
+    .confirm-modal { width:420px; max-width:90vw; }
+    .modal-header { padding:20px 24px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
+    .modal-header h3 { margin:0; font-size:18px; color:#0f172a; display:flex; align-items:center; gap:10px; }
+    .modal-close { background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer; padding:4px 8px; border-radius:6px; text-decoration:none; }
+    .modal-close:hover { background:#fee2e2; color:#ef4444; }
+    .modal-body { padding:24px; }
+    .modal-footer { padding:16px 24px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px; }
+    .btn-secondary { height:40px; padding:0 20px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; text-decoration:none; box-sizing:border-box; font-family:'Poppins',sans-serif; }
+    .btn-secondary:hover { background:#f8fafc; }
+    .btn-confirm { height:40px; padding:0 20px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; font-family:'Poppins',sans-serif; }
+    .btn-confirm:hover { background:#1d4ed8; }
+    .btn-danger { height:40px; padding:0 20px; border:none; border-radius:8px; background:#dc2626; color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; font-family:'Poppins',sans-serif; }
+    .btn-danger:hover { background:#b91c1c; }
+    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .detail-item { display:flex; flex-direction:column; gap:4px; }
+    .detail-item.full-width { grid-column:1 / -1; }
+    .detail-label { font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; }
+    .detail-value { font-size:14px; color:#0f172a; }
+    .fw-bold { font-weight:700; }
+    .text-red { color:#dc2626; }
+    .text-green { color:#16a34a; }
+    @@media (max-width:768px) { .filter-bar { flex-direction:column; align-items:stretch; } .filter-left { width:100%; } .tab-btn { width:100%; justify-content:center; } .search-input { width:100%; } .detail-grid { grid-template-columns:1fr; } }
+</style>

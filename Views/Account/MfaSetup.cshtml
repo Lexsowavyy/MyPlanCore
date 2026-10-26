@@ -1,0 +1,117 @@
+@model PlanCore.Web.ViewModels.MfaSetupViewModel
+@{
+    Layout = "_BareLayout";
+    var goToDashboard = (string)(ViewData["DashboardUrl"] ?? "/");
+}
+<div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box; font-family: 'Poppins', sans-serif;">
+    <div style="background: #ffffff; border-radius: 24px; padding: 52px 72px; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+        <div style="text-align: center; margin-bottom: 28px;">
+            <img src="~/images/logo.png" alt="PlanCore Logo" style="width: 100px; height: auto;" />
+        </div>
+
+        <h2 style="margin: 0 0 4px; font-size: 1.25rem; color: #1e293b; text-align: center;">
+            <i class="fas fa-shield-alt" style="color: #0f172a; margin-right: 8px;"></i> Two-Factor Authentication
+        </h2>
+        <p style="margin: 0 0 24px; font-size: 0.8rem; color: #94a3b8; text-align: center;">
+            Secure your account with email-based verification
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div style="background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; color: #166534; font-size: 0.75rem; text-align: center;">
+                <i class="fas fa-check-circle" style="margin-right: 6px;"></i> @Model.SuccessMessage
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; color: #dc2626; font-size: 0.75rem;">@Model.ErrorMessage</div>
+        }
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+            <div style="font-size: 0.85rem; color: #1e293b; margin-bottom: 6px; text-align: center;">
+                <i class="fas fa-user" style="color: #0f172a; margin-right: 6px;"></i>
+                Account: <strong>@Model.Email</strong>
+            </div>
+
+            @if (Model.Step == "idle")
+            {
+                <div style="margin-bottom: 16px; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #64748b;">
+                        @if (Model.IsMfaEnabled)
+                        {
+                            <span><i class="fas fa-check-circle" style="color: #16a34a;"></i> MFA is currently <strong>enabled</strong></span>
+                        }
+                        else
+                        {
+                            <span><i class="fas fa-times-circle" style="color: #94a3b8;"></i> MFA is currently <strong>disabled</strong></span>
+                        }
+                    </div>
+                </div>
+
+                @if (!Model.IsMfaEnabled)
+                {
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #334155; margin-bottom: 6px;">
+                            <i class="fas fa-envelope" style="color: #0f172a; margin-right: 5px;"></i> Verification email will be sent to
+                        </label>
+                        <div style="font-size: 0.82rem; color: #1e293b; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 11px 14px;">
+                            @Model.Email
+                        </div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <form method="post" action="/Account/MfaSendCode">
+                            <button type="submit" style="padding: 10px 24px; font-size: 0.8rem; font-weight: 600; color: #ffffff; background: linear-gradient(135deg, #0f172a 0%, #0f2456 50%, #1e3a6e 100%); border: none; border-radius: 10px; cursor: pointer;">
+                                Send Verification Code
+                            </button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div style="text-align: center;">
+                        <form method="post" action="/Account/MfaDisable">
+                            <button type="submit" style="padding: 10px 24px; font-size: 0.8rem; font-weight: 600; color: #dc2626; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 10px; cursor: pointer;">
+                                <i class="fas fa-ban" style="margin-right: 6px;"></i> Disable MFA
+                            </button>
+                        </form>
+                    </div>
+                }
+            }
+
+            @if (Model.Step == "codesent")
+            {
+                <form method="post" action="/Account/MfaVerifyCode">
+                    <div style="margin-bottom: 14px;">
+                        <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 8px; text-align: center;">
+                            A 6-digit code was sent to <strong>@Model.Email</strong>. Check your inbox (and spam folder).
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.DevCode))
+                        {
+                            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; color: #92400e; font-size: 0.7rem; text-align: center;">
+                                <i class="fas fa-flask" style="margin-right: 4px;"></i> Dev mode (email not configured): your code is <strong style="letter-spacing: 2px;">@Model.DevCode</strong>
+                            </div>
+                        }
+                        <div style="position: relative; display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #0f172a; background: #ffffff; max-width: 260px; margin: 0 auto;">
+                            <input type="text" name="code" value="@Model.Code" style="border: none; padding: 11px 10px; font-size: 0.82rem; flex: 1; background: transparent; color: #1e293b; font-family: 'Poppins', sans-serif; letter-spacing: 8px; text-align: center;" placeholder="_ _ _ _ _ _" maxlength="6" />
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button type="submit" style="padding: 10px 24px; font-size: 0.8rem; font-weight: 600; color: #ffffff; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border: none; border-radius: 10px; cursor: pointer;">
+                            Verify &amp; Enable MFA
+                        </button>
+                        <a href="/Account/MfaSetup" style="padding: 10px 24px; font-size: 0.8rem; font-weight: 600; color: #64748b; background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 10px; cursor: pointer; text-decoration: none;">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            }
+        </div>
+
+        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; text-align: center;">
+            <a href="@goToDashboard" style="color: #0f172a; text-decoration: none; font-size: 0.75rem; font-weight: 500;">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>

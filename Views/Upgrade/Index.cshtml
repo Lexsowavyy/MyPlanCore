@@ -1,0 +1,86 @@
+@model PlanCore.Web.ViewModels.UpgradeViewModel
+@using PlanCoreMAUI.Models
+@{
+    var plans = SubscriptionPlan.Plans.Values;
+}
+<div class="page-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px;">
+    <div style="text-align: center; max-width: 800px;">
+        <div style="width: 80px; height: 80px; background: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+            <i class="fas fa-lock" style="font-size: 32px; color: #f59e0b;"></i>
+        </div>
+        <h2 style="font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 8px;">Feature Not Available</h2>
+        <p style="font-size: 16px; color: #64748b; margin: 0 0 6px;">@Model.RestrictionMessage</p>
+        <p style="font-size: 14px; color: #94a3b8; margin: 0 0 32px;">
+            Your current plan: <strong>@Model.CurrentPlanName</strong> &middot; Required: <strong>@Model.RequiredPlan</strong>
+        </p>
+
+        <div class="plan-cards">
+            @foreach (var plan in plans)
+            {
+                var isCurrent = plan.Name == Model.CurrentPlanName;
+                var canAccess = plan.Name == Model.CurrentPlanName || plan.AllowedModules.Contains("*") || plan.AllowedModules.Contains(Model.RequestedModule);
+                <div class="plan-card @(isCurrent ? "plan-current" : "")">
+                    <div class="plan-name">@plan.Name</div>
+                    <div class="plan-price">
+                        @if (plan.Name == "Enterprise")
+                        {
+                            <span style="font-size: 16px;">Custom</span>
+                        }
+                        else
+                        {
+                            <text>@(plan.PriceMonthly.ToString("N0"))<span>/mo</span></text>
+                        }
+                    </div>
+                    <div class="plan-features">
+                        @foreach (var f in plan.GetFeatures())
+                        {
+                            <div class="plan-feature @(f.Included ? "included" : "")">
+                                <i class="fas @(f.Included ? "fa-check" : "fa-times")"></i>
+                                @(f.Label + (f.IsBool ? "" : $": {f.Value}"))
+                            </div>
+                        }
+                    </div>
+                    @if (isCurrent)
+                    {
+                        <div class="plan-btn current">Current Plan</div>
+                    }
+                    else if (canAccess || plan.Name == "Enterprise")
+                    {
+                        <a href="/superadmin/billing" class="plan-btn upgrade">Upgrade</a>
+                    }
+                    else
+                    {
+                        <div class="plan-btn disabled">Upgrade</div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div style="margin-top: 28px;">
+            <a href="/superadmin/billing" style="color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 600;">
+                <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Go to Billing Settings
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .plan-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .plan-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; }
+    .plan-card.plan-current { border-color: #f59e0b; background: #fffbeb; }
+    .plan-name { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .plan-price { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 16px; }
+    .plan-price span { font-size: 13px; font-weight: 500; color: #64748b; }
+    .plan-features { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; flex: 1; }
+    .plan-feature { font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 8px; }
+    .plan-feature.included { color: #334155; }
+    .plan-feature i { font-size: 12px; width: 16px; }
+    .plan-feature.included i { color: #16a34a; }
+    .plan-feature:not(.included) i { color: #cbd5e1; }
+    .plan-btn { width: 100%; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; display: block; text-decoration: none; box-sizing: border-box; }
+    .plan-btn.current { background: #f59e0b; color: #fff; }
+    .plan-btn.upgrade { background: #2563eb; color: #fff; }
+    .plan-btn.upgrade:hover { background: #1d4ed8; }
+    .plan-btn.disabled { background: #e2e8f0; color: #94a3b8; }
+    @@media (max-width: 768px) { .plan-cards { grid-template-columns: repeat(2, 1fr); } }
+</style>

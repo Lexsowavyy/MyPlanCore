@@ -1,0 +1,120 @@
+@model PlanCore.Web.ViewModels.SetupViewModel
+@using PlanCoreMAUI.Models
+@{
+    var plans = SubscriptionPlan.Plans.Values;
+}
+@if (Model.RedirectAfterSuccess)
+{
+    <script>
+        setTimeout(function () { window.location.href = '/admin'; }, 1500);
+    </script>
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-rocket"></i> Welcome to PlanCore PMS!</h2>
+        <p class="page-subtitle">Choose a subscription plan to get started. You can upgrade or downgrade anytime.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+
+    <div class="table-section">
+        <div class="table-header">
+            <span><i class="fas fa-crown"></i> Select Your Plan</span>
+        </div>
+        <div class="table-scroll plan-comparison">
+            <div class="plan-cards">
+                @foreach (var plan in plans)
+                {
+                    var isSelected = Model.SelectedPlan == plan.Name;
+                    <div class="plan-card @(isSelected ? "plan-selected" : "")">
+                        <div class="plan-name">@plan.Name</div>
+                        @if (plan.PriceMonthly > 0 && plan.PriceYearly > 0)
+                        {
+                            <div class="plan-price">@(plan.PriceMonthly.ToString("N0"))<span>/mo</span></div>
+                            <div class="plan-price-yearly">@(plan.PriceYearly.ToString("N0"))<span>/yr</span></div>
+                        }
+                        else if (plan.PriceMonthly > 0)
+                        {
+                            <div class="plan-price">@(plan.PriceMonthly.ToString("N0"))<span>/mo only</span></div>
+                        }
+                        else if (plan.PriceYearly > 0)
+                        {
+                            <div class="plan-price">@(plan.PriceYearly.ToString("N0"))<span>/yr</span></div>
+                        }
+                        <div class="plan-features">
+                            @foreach (var f in plan.GetFeatures())
+                            {
+                                <div class="plan-feature @(f.Included ? "included" : "")">
+                                    <i class="fas @(f.Included ? "fa-check" : "fa-times")"></i>
+                                    @(f.Label + (f.IsBool ? "" : $": {f.Value}"))
+                                </div>
+                            }
+                        </div>
+                        <a class="plan-btn select" href="/setup?plan=@(System.Net.WebUtility.UrlEncode(plan.Name))">
+                            @if (isSelected)
+                            {
+                                <span>Selected</span>
+                            }
+                            else
+                            {
+                                <span>Choose @plan.Name</span>
+                            }
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SelectedPlan))
+    {
+        <div class="setup-footer">
+            <form method="post" action="/Setup/Confirm">
+                <input type="hidden" name="plan" value="@Model.SelectedPlan" />
+                <button type="submit" class="plan-btn confirm">
+                    <span><i class="fas fa-check-circle"></i> Confirm @Model.SelectedPlan Plan</span>
+                </button>
+            </form>
+        </div>
+    }
+</div>
+
+<style>
+    .alert { padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; margin-bottom: 20px; }
+    .alert-danger { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+    .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
+    .plan-comparison { padding: 24px; }
+    .plan-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .plan-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; align-items: center; transition: all 0.2s; cursor: pointer; }
+    .plan-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .plan-card.plan-selected { border-color: #2563eb; background: #eff6ff; }
+    .plan-name { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .plan-price { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .plan-price span { font-size: 14px; font-weight: 500; color: #64748b; }
+    .plan-price-yearly { font-size: 20px; font-weight: 700; color: #64748b; margin-bottom: 8px; }
+    .plan-price-yearly span { font-size: 13px; font-weight: 500; color: #94a3b8; }
+    .plan-features { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; flex: 1; }
+    .plan-feature { font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 8px; }
+    .plan-feature.included { color: #334155; }
+    .plan-feature i { font-size: 12px; width: 16px; }
+    .plan-feature.included i { color: #16a34a; }
+    .plan-feature:not(.included) i { color: #cbd5e1; }
+    .plan-btn { width: 100%; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; border: none; cursor: pointer; text-decoration: none; box-sizing: border-box; display: block; }
+    .plan-btn.select { background: #e2e8f0; color: #475569; font-family: 'Poppins', sans-serif; }
+    .plan-card.plan-selected .plan-btn.select { background: #2563eb; color: #fff; }
+    .plan-btn.select:hover { background: #cbd5e1; }
+    .plan-card.plan-selected .plan-btn.select:hover { background: #2563eb; }
+    .plan-btn.confirm { background: #16a34a; color: #fff; padding: 14px 32px; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; width: auto; border-radius: 10px; font-family: 'Poppins', sans-serif; }
+    .plan-btn.confirm:hover { background: #15803d; }
+    .setup-footer { text-align: center; padding: 24px 0; }
+    @@media (max-width: 900px) { .plan-cards { grid-template-columns: repeat(2, 1fr); } }
+    @@media (max-width: 600px) { .plan-cards { grid-template-columns: 1fr; } }
+</style>

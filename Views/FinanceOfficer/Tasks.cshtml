@@ -1,0 +1,274 @@
+@model PlanCore.Web.ViewModels.FOMyTasksViewModel
+@{
+    ViewData["Title"] = "My Tasks";
+    string FormatDate(DateTime? date) => date?.ToString("MMM dd, yyyy h:mm tt") ?? "-";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-tasks"></i> My Tasks</h2>
+        <p class="page-subtitle">Tasks assigned from Project Manager's Task Scheduling</p>
+    </div>
+
+    <div class="cards-row">
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks" style="color:#8b5cf6;"></i>
+                </div>
+                <p class="stat-label">Total Tasks</p>
+            </div>
+            <div class="stat-right">
+                <h2 class="stat-value">@Model.Total</h2>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon">
+                    <i class="fas fa-hourglass-half" style="color:#f59e0b;"></i>
+                </div>
+                <p class="stat-label">Pending</p>
+            </div>
+            <div class="stat-right">
+                <h2 class="stat-value">@Model.PendingCount</h2>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon">
+                    <i class="fas fa-spinner" style="color:#3b82f6;"></i>
+                </div>
+                <p class="stat-label">In Progress</p>
+            </div>
+            <div class="stat-right">
+                <h2 class="stat-value">@Model.InProgressCount</h2>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle" style="color:#22c55e;"></i>
+                </div>
+                <p class="stat-label">Completed</p>
+            </div>
+            <div class="stat-right">
+                <h2 class="stat-value">@Model.CompletedCount</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <form method="get" action="/financeofficer/tasks" class="filter-form">
+            <div class="filter-left">
+                <select class="filter-select" name="date" onchange="this.form.submit();">
+                    <option value="All" selected="@(Model.DateFilter == "All" ? "selected" : null)">All</option>
+                    <option value="Today" selected="@(Model.DateFilter == "Today" ? "selected" : null)">Today</option>
+                    <option value="This Week" selected="@(Model.DateFilter == "This Week" ? "selected" : null)">This Week</option>
+                    <option value="This Month" selected="@(Model.DateFilter == "This Month" ? "selected" : null)">This Month</option>
+                    <option value="This Year" selected="@(Model.DateFilter == "This Year" ? "selected" : null)">This Year</option>
+                </select>
+                <a class="btn-clear" href="/financeofficer/tasks">Clear Filter</a>
+            </div>
+            <div class="filter-right">
+                <select class="filter-select" name="status" style="min-width:140px;" onchange="this.form.submit();">
+                    <option value="" selected="@(Model.StatusFilter == "" ? "selected" : null)">All Status</option>
+                    <option value="Pending" selected="@(Model.StatusFilter == "Pending" ? "selected" : null)">Pending</option>
+                    <option value="In Progress" selected="@(Model.StatusFilter == "In Progress" ? "selected" : null)">In Progress</option>
+                    <option value="Completed" selected="@(Model.StatusFilter == "Completed" ? "selected" : null)">Completed</option>
+                </select>
+                <input type="text" placeholder="Search..." class="search-input" name="search" value="@Model.Search" />
+            </div>
+        </form>
+    </div>
+
+    <div class="table-section">
+        <div class="table-header">
+            <span><i class="fas fa-list"></i> Task List</span>
+            <span class="item-count">@Model.Items.Count items</span>
+        </div>
+        <div class="table-scroll">
+            <table class="project-table">
+                <thead>
+                    <tr>
+                        <th>#ID</th>
+                        <th>Task</th>
+                        <th>Project</th>
+                        <th>Priority</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Completed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Items.Any())
+                    {
+                        <tr><td colspan="8" class="text-center py-5 text-muted">No tasks found</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var t in Model.Items)
+                        {
+                            var priorityColor = t.Priority switch { "High" => "#ef4444", "Medium" => "#f59e0b", "Low" => "#22c55e", _ => "#64748b" };
+                            var statusColor = t.Status switch { "Completed" => "#22c55e", "In Progress" => "#3b82f6", "Pending" => "#f59e0b", _ => "#64748b" };
+                            <tr>
+                                <td><span class="id-cell">TSK-@(t.Id.ToString("D4"))</span></td>
+                                <td><span class="project-cell">@t.Name</span></td>
+                                <td>@t.Project</td>
+                                <td><span style="color:@priorityColor;font-weight:600;">@t.Priority</span></td>
+                                <td>@(FormatDate(t.DueDate))</td>
+                                <td><span style="color:@statusColor;font-weight:600;">@t.Status</span></td>
+                                <td>@(FormatDate(t.CompletedDate))</td>
+                                <td>
+                                    <a class="icon-btn" title="View" href="/financeofficer/tasks?modal=view&view=@t.Id&date=@(Uri.EscapeDataString(Model.DateFilter))&status=@(Uri.EscapeDataString(Model.StatusFilter))&search=@(Uri.EscapeDataString(Model.Search))"><i class="fas fa-eye"></i></a>
+                                    <a class="icon-btn" title="Archive" href="/financeofficer/tasks?modal=archive&id=@t.Id&name=@(Uri.EscapeDataString(t.Name))&date=@(Uri.EscapeDataString(Model.DateFilter))&status=@(Uri.EscapeDataString(Model.StatusFilter))&search=@(Uri.EscapeDataString(Model.Search))"><i class="fas fa-archive"></i></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.Modal == "view" && Model.SelectedItem != null)
+{
+    var t = Model.SelectedItem;
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-tasks" style="color:#8b5cf6;"></i> Task Details</h3>
+                <a class="modal-close" href="@(GetTasksBaseUrl())"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row"><span class="detail-label">Task</span><span class="detail-value">@t.Name</span></div>
+                <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">@t.Description</span></div>
+                <div class="detail-row"><span class="detail-label">Project</span><span class="detail-value">@t.Project</span></div>
+                <div class="detail-row"><span class="detail-label">Location</span><span class="detail-value">@t.Location</span></div>
+                <div class="detail-row"><span class="detail-label">Priority</span><span class="detail-value">@t.Priority</span></div>
+                <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">@t.Status</span></div>
+                @if (t.CompletedDate != null)
+                {
+                    <div class="detail-row"><span class="detail-label">Completed</span><span class="detail-value" style="color:#16a34a;">@(FormatDate(t.CompletedDate))</span></div>
+                }
+                <div class="detail-row"><span class="detail-label">Due Date</span><span class="detail-value">@(FormatDate(t.DueDate))</span></div>
+            </div>
+            <div class="modal-footer">
+                @if (t.Status != "Completed")
+                {
+                    <form method="post" action="/FinanceOfficer/UpdateTaskStatus" style="display:inline;">
+                        <input type="hidden" name="id" value="@t.Id" />
+                        <button type="submit" class="btn-create" style="background:#3b82f6;"><i class="fas fa-arrow-right"></i> @(t.Status == "Pending" ? "Start" : "Complete")</button>
+                    </form>
+                }
+                <a class="btn-cancel" href="@(GetTasksBaseUrl())">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.Modal == "archive")
+{
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-archive" style="color:#f59e0b;"></i> Archive Task</h3>
+                <a class="modal-close" href="@(GetTasksBaseUrl())"><i class="fas fa-times"></i></a>
+            </div>
+            <form method="post" action="/FinanceOfficer/ArchiveTask">
+                <input type="hidden" name="id" value="@Model.ActionTargetId" />
+                <div class="modal-body">
+                    <p style="text-align:center;color:#475569;font-size:15px;margin:0;">
+                        Are you sure you want to archive <strong>@Model.ActionTargetName</strong>?
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <a class="btn-cancel" href="@(GetTasksBaseUrl())">Cancel</a>
+                    <button type="submit" class="btn-create" style="background:#f59e0b;"><i class="fas fa-archive"></i> Archive</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; padding:24px; }
+    .page-header { margin-bottom:24px; flex-shrink:0; }
+    .page-title { margin:0 0 4px 0; font-size:24px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#8b5cf6; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+
+    .cards-row { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-bottom:24px; flex-shrink:0; }
+    .stat-card { background:#ffffff; border-radius:12px; padding:24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; }
+    .stat-left { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+    .stat-right { display:flex; flex-direction:column; align-items:flex-end; }
+    .stat-label { margin:0; font-size:13px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+    .stat-value { margin:0; font-size:32px; font-weight:700; color:#0f172a; }
+    .stat-icon { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:4px; }
+
+    .filter-bar { margin-bottom:20px; flex-shrink:0; }
+    .filter-form { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; width:100%; }
+    .filter-left { display:flex; gap:10px; flex-wrap:wrap; }
+    .filter-right { display:flex; align-items:center; gap:12px; }
+    .filter-select { height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; color:#475569; background:#fff; min-width:130px; cursor:pointer; font-weight:500; }
+    .filter-select:focus { outline:none; border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.1); }
+    .btn-clear { height:40px; padding:0 18px; border:1.5px solid #f87171; border-radius:8px; background:#fff; color:#dc2626; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
+    .btn-clear:hover { background:#fef2f2; border-color:#ef4444; }
+    .search-input { width:200px; height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; box-sizing:border-box; }
+    .search-input:focus { outline:none; border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.1); }
+
+    .table-section { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; overflow:hidden; flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
+    .table-header { padding:18px 24px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center; }
+    .table-header span { font-weight:600; color:#334155; font-size:16px; display:flex; align-items:center; }
+    .table-header span i { margin-right:10px; color:#8b5cf6; }
+    .table-header .item-count { font-size:13px; color:#64748b; background:#e2e8f0; padding:8px 14px; border-radius:20px; white-space:nowrap; font-weight:500; }
+    .table-scroll { flex:1 1 0; overflow-y:auto; overflow-x:auto; }
+    .project-table { width:100%; border-collapse:collapse; }
+    .project-table th { background:#f8fafc; padding:14px 20px; text-align:left; font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+    .project-table td { padding:16px 20px; font-size:14px; color:#475569; border-bottom:1px solid #f1f5f9; white-space:nowrap; }
+    .project-table tbody tr:hover { background:#f8fafc; }
+    .project-table tbody tr { transition:background 0.15s; }
+    .id-cell { color:#8b5cf6; font-weight:600; }
+    .project-cell { font-weight:600; color:#0f172a; }
+
+    .icon-btn { background:transparent; border:none; padding:6px 8px; cursor:pointer; border-radius:6px; color:#64748b; transition:all 0.2s; text-decoration:none; display:inline-block; }
+    .icon-btn:hover { background:#f1f5f9; color:#8b5cf6; }
+    .icon-btn i { font-size:14px; }
+    .text-muted { color:#94a3b8; }
+    .text-center { text-align:center; }
+    .py-5 { padding-top:3rem; padding-bottom:3rem; }
+
+    .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
+    .modal-content { background:#fff; border-radius:16px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px; border-bottom:1px solid #e2e8f0; background:#f8fafc; border-radius:16px 16px 0 0; }
+    .modal-header h3 { margin:0; font-size:18px; font-weight:600; color:#0f172a; display:flex; align-items:center; gap:10px; }
+    .modal-header h3 i { color:#8b5cf6; }
+    .modal-close { background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer; padding:4px 8px; border-radius:6px; text-decoration:none; }
+    .modal-close:hover { background:#fee2e2; color:#ef4444; }
+    .modal-body { padding:24px; }
+    .modal-footer { display:flex; justify-content:flex-end; gap:12px; padding:20px 24px; border-top:1px solid #e2e8f0; background:#f8fafc; border-radius:0 0 16px 16px; }
+    .detail-row { display:flex; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+    .detail-label { width:140px; flex-shrink:0; font-weight:600; color:#64748b; font-size:13px; }
+    .detail-value { color:#1e293b; font-size:14px; }
+    .btn-cancel { height:42px; padding:0 24px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:14px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; text-decoration:none; display:inline-flex; align-items:center; }
+    .btn-cancel:hover { background:#f1f5f9; border-color:#94a3b8; }
+    .btn-create { height:42px; padding:0 24px; border:none; border-radius:8px; color:#fff; font-size:14px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn-create:hover { opacity:0.9; }
+
+    @@media (max-width:1200px) { .cards-row { grid-template-columns:repeat(2,1fr); } }
+    @@media (max-width:768px) { .cards-row { grid-template-columns:1fr; } .filter-form { flex-direction:column; align-items:stretch; } .filter-left,.filter-right { justify-content:center; } .search-input { width:100%; } }
+</style>
+
+@functions {
+    private string GetTasksBaseUrl()
+    {
+        var sb = new System.Text.StringBuilder("/financeofficer/tasks");
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(Model.DateFilter) && Model.DateFilter != "All") parts.Add("date=" + Uri.EscapeDataString(Model.DateFilter));
+        if (!string.IsNullOrEmpty(Model.StatusFilter)) parts.Add("status=" + Uri.EscapeDataString(Model.StatusFilter));
+        if (!string.IsNullOrEmpty(Model.Search)) parts.Add("search=" + Uri.EscapeDataString(Model.Search));
+        if (parts.Any()) sb.Append("?").Append(string.Join("&", parts));
+        return sb.ToString();
+    }
+}

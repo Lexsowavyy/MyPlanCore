@@ -1,0 +1,338 @@
+@model PlanCore.Web.ViewModels.SuperAdminReportsViewModel
+@{
+    string StatusClass(string s) => s switch
+    {
+        "Completed" or "Approved" => "badge-green",
+        "In Progress" => "badge-blue",
+        "On Hold" => "badge-yellow",
+        "Delayed" or "Rejected" or "Declined" => "badge-red",
+        "Critical" => "badge-red",
+        "Warning" => "badge-yellow",
+        "On Track" => "badge-green",
+        _ => "badge-slate"
+    };
+    bool Show(string section) => Model.Section == "All" || Model.Section == section;
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-chart-bar"></i> All Reports</h2>
+        <p class="page-subtitle">View and export system reports and analytics across all modules.</p>
+    </div>
+
+    <div class="cards-row">
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-users" style="color:#dc2626;"></i></div>
+                <p class="stat-label">Total Users</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@Model.UserCount</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-project-diagram" style="color:#2563eb;"></i></div>
+                <p class="stat-label">Projects</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@Model.ProjectCount</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-tasks" style="color:#8b5cf6;"></i></div>
+                <p class="stat-label">Tasks</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@Model.TaskCount</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-wallet" style="color:#16a34a;"></i></div>
+                <p class="stat-label">Net Balance</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value" style="font-size:24px;">@Model.NetBalance.ToString("N2")</h2></div>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <form method="get" action="/superadmin/reports" class="filter-left">
+            <select class="filter-select" name="section" onchange="this.form.submit()">
+                <option value="All" selected="@(Model.Section == "All" ? "selected" : null)">All Reports</option>
+                <option value="Projects" selected="@(Model.Section == "Projects" ? "selected" : null)">Project Report</option>
+                <option value="Tasks" selected="@(Model.Section == "Tasks" ? "selected" : null)">Task Report</option>
+                <option value="Budgets" selected="@(Model.Section == "Budgets" ? "selected" : null)">Financial Report</option>
+                <option value="Users" selected="@(Model.Section == "Users" ? "selected" : null)">User Report</option>
+            </select>
+            <input type="text" name="search" placeholder="Search..." class="search-input" value="@Model.Search" />
+            <button type="submit" class="btn-clear" style="border-color:#cbd5e1;color:#475569;">Apply</button>
+            <a class="btn-clear" href="/superadmin/reports"><i class="fas fa-filter" style="margin-right:6px;"></i>Clear</a>
+        </form>
+        <form method="post" action="/SuperAdmin/ExportPdf" class="filter-right">
+            <button type="submit" class="btn-new"><i class="fas fa-file-pdf"></i> Generate Report</button>
+        </form>
+    </div>
+
+    <div class="summary-strip">
+        <div class="summary-item"><span class="legend-dot" style="background:#ca8a04;"></span> Budget <strong>@Model.TotalBudget.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#ef4444;"></span> Spent <strong>@Model.TotalSpent.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#16a34a;"></span> Income <strong>@Model.TotalIncome.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#ef4444;"></span> Expenses <strong>@Model.TotalExpense.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Estimates <strong>@Model.EstimateCount</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#ea580c;"></span> Open Issues <strong>@Model.IssueCount</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#06b6d4;"></span> Pending Requests <strong>@Model.RequestCount</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#64748b;"></span> Audit Entries <strong>@Model.AuditCount</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#2563eb;"></span> Tenants <strong>@Model.TenantCount</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#16a34a;"></span> Paid Revenue <strong>@Model.TotalRevenue.ToString("N2")</strong></div>
+    </div>
+
+    @if (Show("Projects"))
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-project-diagram"></i> Project Report</span>
+                <span class="item-count">@Model.Projects.Count items</span>
+            </div>
+            <div class="table-body">
+                <table>
+                    <thead>
+                        <tr><th>Project</th><th>Status</th><th>Manager</th><th>Location</th><th>Due Date</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Projects.Any())
+                        {
+                            foreach (var p in Model.Projects)
+                            {
+                                <tr>
+                                    <td>@p.Name</td>
+                                    <td><span class="@StatusClass(p.Status)">@p.Status</span></td>
+                                    <td>@p.Manager</td>
+                                    <td>@p.Location</td>
+                                    <td>@p.DueDate</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:18px;">No project data</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (Show("Tasks"))
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-tasks"></i> Task Report</span>
+                <span class="item-count">@Model.Tasks.Count items</span>
+            </div>
+            <div class="table-body">
+                <table>
+                    <thead>
+                        <tr><th>Task</th><th>Project</th><th>Assignee</th><th>Status</th><th>Priority</th><th>Progress</th><th>Due Date</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Tasks.Any())
+                        {
+                            foreach (var t in Model.Tasks)
+                            {
+                                <tr>
+                                    <td>@t.Name</td>
+                                    <td>@t.Project</td>
+                                    <td>@t.Assignee</td>
+                                    <td><span class="@StatusClass(t.Status)">@t.Status</span></td>
+                                    <td>@t.Priority</td>
+                                    <td>@t.Progress%</td>
+                                    <td>@t.DueDate</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:18px;">No task data</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (Show("Budgets"))
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-coins"></i> Financial Report</span>
+                <span class="item-count">@Model.Budgets.Count items</span>
+            </div>
+            <div class="table-body">
+                <table>
+                    <thead>
+                        <tr><th>Project</th><th>Budget</th><th>Spent</th><th>Remaining</th><th>Health</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Budgets.Any())
+                        {
+                            foreach (var b in Model.Budgets)
+                            {
+                                <tr>
+                                    <td>@b.Project</td>
+                                    <td>@b.Budget.ToString("N2")</td>
+                                    <td>@b.Spent.ToString("N2")</td>
+                                    <td>@b.Remaining.ToString("N2")</td>
+                                    <td><span class="@StatusClass(b.Health)">@b.Health</span></td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:18px;">No budget data</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (Show("Users"))
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-user-tag"></i> Users by Role</span>
+                <span class="item-count">@Model.UsersByRole.Count roles</span>
+            </div>
+            <div class="table-body">
+                <table>
+                    <thead>
+                        <tr><th>Role</th><th>Users</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.UsersByRole)
+                        {
+                            <tr>
+                                <td><span class="legend-dot" style="background:@r.Color;display:inline-block;margin-right:8px;"></span>@r.Label</td>
+                                <td>@r.Count</td>
+                            </tr>
+                        }
+                        @if (!Model.UsersByRole.Any())
+                        {
+                            <tr><td colspan="2" style="text-align:center;color:#94a3b8;padding:18px;">No user data</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (Show("All") || Show("Users"))
+    {
+        <div class="table-section">
+            <div class="table-header">
+                <span><i class="fas fa-building"></i> Tenants</span>
+                <span class="item-count">@Model.Tenants.Count items</span>
+            </div>
+            <div class="table-body">
+                <table>
+                    <thead>
+                        <tr><th>Company</th><th>Admin Email</th><th>Plan</th><th>Status</th><th>Users</th><th>Projects</th><th>Subscription End</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Tenants.Any())
+                        {
+                            foreach (var t in Model.Tenants)
+                            {
+                                <tr>
+                                    <td>@t.Company</td>
+                                    <td>@t.AdminEmail</td>
+                                    <td>@t.Plan</td>
+                                    <td>@t.Status</td>
+                                    <td>@t.UsedUsers</td>
+                                    <td>@t.UsedProjects</td>
+                                    <td>@t.SubscriptionEnd</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:18px;">No tenants</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="table-section">
+        <div class="table-header">
+            <span><i class="fas fa-history"></i> Recent Activity</span>
+            <span class="item-count">@Model.RecentActivity.Count items</span>
+        </div>
+        <div class="table-body">
+            <table>
+                <thead>
+                    <tr><th>User</th><th>Action</th><th>Module</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                    @if (Model.RecentActivity.Any())
+                    {
+                        foreach (var a in Model.RecentActivity)
+                        {
+                            <tr>
+                                <td>@a.Title</td>
+                                <td>@a.Action</td>
+                                <td>@a.Subtitle</td>
+                                <td>@a.Date</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:18px;">No activity data</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; gap:20px; }
+    .page-header { flex-shrink:0; }
+    .page-title { margin:0 0 6px; font-size:26px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#2563eb; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+
+    .cards-row { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+    .stat-card { background:#fff; border-radius:12px; padding:20px 22px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
+    .stat-left { display:flex; flex-direction:column; gap:6px; }
+    .stat-label { margin:0; font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+    .stat-value { margin:0; font-size:30px; font-weight:700; color:#0f172a; }
+    .stat-icon { width:44px; height:44px; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:18px; }
+
+    .filter-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+    .filter-left { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .filter-select, .search-input { height:40px; padding:0 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; color:#475569; background:#fff; }
+    .search-input { min-width:220px; }
+    .btn-clear { height:40px; padding:0 18px; border:1.5px solid #f87171; border-radius:8px; background:#fff; color:#dc2626; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
+    .btn-clear:hover { background:#fef2f2; }
+    .btn-new { height:40px; padding:0 18px; border:none; border-radius:8px; background:#2563eb; color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+    .btn-new:hover { background:#1d4ed8; }
+
+    .summary-strip { display:flex; flex-wrap:wrap; gap:14px 26px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; font-size:13px; color:#475569; align-items:center; }
+    .summary-strip strong { color:#0f172a; }
+    .legend-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+
+    .table-section { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+    .table-header { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; font-weight:600; color:#0f172a; font-size:14px; }
+    .table-header i { margin-right:8px; color:#2563eb; }
+    .item-count { font-size:12px; color:#64748b; font-weight:500; }
+    .table-body { max-height:340px; overflow-y:auto; }
+    .table-body table { width:100%; border-collapse:collapse; font-size:13px; }
+    .table-body th { text-align:left; padding:11px 16px; background:#fff; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #e2e8f0; position:sticky; top:0; }
+    .table-body td { padding:11px 16px; border-bottom:1px solid #f1f5f9; color:#334155; }
+    .table-body tr:hover td { background:#f8fafc; }
+    .badge-green { color:#16a34a; font-weight:600; }
+    .badge-blue { color:#2563eb; font-weight:600; }
+    .badge-red { color:#dc2626; font-weight:600; }
+    .badge-yellow { color:#d97706; font-weight:600; }
+    .badge-slate { color:#64748b; font-weight:600; }
+    @@media (max-width:1200px) { .cards-row { grid-template-columns:repeat(2,1fr); } }
+    @@media (max-width:768px) { .cards-row { grid-template-columns:1fr; } }
+</style>

@@ -1,0 +1,390 @@
+:root {
+    --primary-blue: #2563eb;
+    --success-green: #10b981;
+    --warning-yellow: #f59e0b;
+    --danger-red: #ef4444;
+    --info-cyan: #06b6d4;
+    --purple: #8b5cf6;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #f4f6fb;
+    font-family: 'Segoe UI', sans-serif;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+}
+
+.sidebar-menu button:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.sidebar-menu button.active {
+    background: var(--primary-blue);
+    color: #fff;
+}
+
+.sidebar-menu button i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-section-label {
+    padding: 8px 16px 4px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 700;
+}
+
+.sidebar-divider {
+    margin: 16px 0;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.dashboard-title {
+    font-weight: 700;
+    font-size: 1.85rem;
+    color: #1e293b;
+    margin: 0 0 22px;
+}
+
+.stat-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    border: 1px solid #f1f5f9;
+}
+
+.stat-card .stat-icon {
+    font-size: 1.8rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    background: #f8fafc;
+}
+
+.stat-card .stat-number {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.stat-card .stat-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.card-box {
+    background: #fff;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    border: 1px solid #f1f5f9;
+}
+
+.card-box-header {
+    background: #f8fafc;
+    padding: 16px 22px;
+    font-weight: 700;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.card-box-body {
+    padding: 22px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background: #f1f5f9;
+    font-size: 0.78rem;
+    color: #475569;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 12px 16px;
+    text-align: left;
+}
+
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.btn-primary-custom {
+    background: white;
+    color: #2563eb;
+    border: 1.5px solid #2563eb;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.btn-filter {
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+}
+
+.status-badge {
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.status-on-track { color: #10b981; }
+.status-in-progress { color: #06b6d4; }
+.status-delayed { color: #f59e0b; }
+.status-planning { color: #2563eb; }
+.status-completed { color: #16a34a; }
+.status-pending { color: #f59e0b; }
+.status-overdue { color: #ef4444; }
+.status-approved { color: #10b981; }
+.status-rejected { color: #ef4444; }
+.status-submitted { color: #06b6d4; }
+.status-adequate { color: #10b981; }
+.status-critical { color: #ef4444; }
+.status-at-risk { color: #f59e0b; }
+
+.form-control {
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+}
+
+.form-control:focus {
+    border-color: #2563eb;
+    outline: none;
+}
+
+.form-select {
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.row { display: flex; flex-wrap: wrap; margin: -10px; }
+.col { padding: 10px; }
+.col-12 { width: 100%; }
+.col-6 { width: 50%; }
+.col-4 { width: 33.33%; }
+.col-3 { width: 25%; }
+
+.mb-3 { margin-bottom: 16px; }
+.mb-4 { margin-bottom: 24px; }
+.mt-2 { margin-top: 8px; }
+.me-2 { margin-right: 8px; }
+.ms-2 { margin-left: 8px; }
+.p-0 { padding: 0; }
+.text-center { text-align: center; }
+.text-end { text-align: right; }
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.justify-content-between { justify-content: space-between; }
+.w-100 { width: 100%; }
+
+.text-muted { color: #64748b; }
+.text-primary { color: #2563eb; }
+.text-success { color: #10b981; }
+.text-danger { color: #ef4444; }
+.fw-bold { font-weight: 700; }
+.fw-semibold { font-weight: 600; }
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
+.badge-primary { background: #2563eb; color: white; }
+.badge-success { background: #10b981; color: white; }
+.badge-warning { background: #f59e0b; color: white; }
+.badge-danger { background: #ef4444; color: white; }
+.badge-info { background: #06b6d4; color: white; }
+.badge-purple { background: #8b5cf6; color: white; }
+
+/* ------------------------------------------------------------------ */
+/* Global responsive layer (desktop + mobile)                          */
+/* ------------------------------------------------------------------ */
+img { max-width: 100%; }
+body { overflow-x: hidden; }
+
+@media (max-width: 1280px) {
+    .main-content { padding: 18px; }
+}
+
+@media (max-width: 768px) {
+    /* Utility grid (legacy .row/.col-*) stacks */
+    .row { margin: -8px; }
+    .col { padding: 8px; }
+    .col-6, .col-4, .col-3 { width: 100%; }
+
+    /* Cards / charts / forms collapse to a single column */
+    .cards-row { grid-template-columns: 1fr !important; }
+    .charts-row, .chart-row { grid-template-columns: 1fr !important; }
+    .form-row { grid-template-columns: 1fr !important; }
+
+    /* Filter bars stack and controls fill width */
+    .filter-bar, .filter-form { flex-wrap: wrap; }
+    .filter-left, .filter-right { flex-wrap: wrap; }
+    .search-input { width: 100% !important; max-width: 100%; }
+
+    /* Tables scroll horizontally instead of squashing */
+    .table-section { overflow-x: auto; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table-scroll table, .table-section table { min-width: 640px; }
+
+    /* Modals fit the viewport */
+    .modal-overlay { padding: 12px; align-items: flex-start; overflow-y: auto; }
+    .modal-content { max-width: 100% !important; max-height: calc(100vh - 24px); overflow-y: auto; }
+
+    /* Detail rows wrap */
+    .detail-row { flex-wrap: wrap; }
+    .detail-label { width: auto; min-width: 45%; }
+
+    /* Content padding */
+    .page-container { padding: 16px !important; }
+}
+
+@media (max-width: 640px) {
+    .cards-row { grid-template-columns: 1fr !important; }
+    .stat-value { font-size: 22px; }
+}
+
+/* Login page */
+@media (max-width: 420px) {
+    .login-box { width: calc(100% - 32px); padding: 28px 22px; margin: 32px auto; }
+}
+
+/* Login Page Styles */
+.login-box {
+    background: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    width: 360px;
+    margin: 80px auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.login-box .logo {
+    display: block;
+    width: 100px;
+    margin: 0 auto 24px;
+}
+
+.login-box h2 {
+    text-align: center;
+    color: #1e293b;
+    margin: 0 0 24px;
+    font-size: 22px;
+}
+
+.login-box .form-group {
+    margin-bottom: 16px;
+}
+
+.login-box .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.login-box .form-group input {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.login-box .form-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.login-box .checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.login-box .checkbox-group input {
+    width: 16px;
+    margin-right: 8px;
+}
+
+.login-box .checkbox-group label {
+    font-size: 14px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.login-box button {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: #2563eb;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.login-box button:hover {
+    background: #1d4ed8;
+}
+
+.login-box .error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 12px;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 13px;
+    margin-bottom: 16px;
+}

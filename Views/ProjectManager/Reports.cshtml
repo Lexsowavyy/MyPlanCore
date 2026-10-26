@@ -1,0 +1,579 @@
+@model PlanCore.Web.ViewModels.PMReportsViewModel
+@using PlanCore.Web.ViewModels
+@using System.Text.Json
+@{
+    string StatusClass(string s) => s switch
+    {
+        "Completed" or "Approved" => "badge-green",
+        "In Progress" => "badge-blue",
+        "On Hold" or "Pending" => "badge-yellow",
+        "Delayed" or "Rejected" or "Declined" or "Cancelled" => "badge-red",
+        "Critical" => "badge-red",
+        "Warning" => "badge-yellow",
+        "On Track" => "badge-green",
+        _ => "badge-slate"
+    };
+    string HealthColor(string h) => h switch
+    {
+        "Over Budget" => "#dc2626",
+        "Critical" => "#ea580c",
+        "Warning" => "#d97706",
+        "On Track" => "#16a34a",
+        _ => "#64748b"
+    };
+    string GetEstimateStatusClass(string? status) => status switch
+    {
+        "Approved" => "badge-green",
+        "Waiting for PM Approval" => "badge-orange",
+        "Rejected" => "badge-red",
+        "Pending Approval" => "badge-teal",
+        _ => "badge-blue"
+    };
+    string GetBudgetStatusClass(string? status) => status switch
+    {
+        "Approved" => "badge-green",
+        "Waiting for PM Approval" => "badge-orange",
+        "Rejected" => "badge-red",
+        "Pending Approval" => "badge-teal",
+        _ => "badge-blue"
+    };
+    List<string> GetMaterials(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new();
+        try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
+        catch { return new(); }
+    }
+    List<string> GetEquipment(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new();
+        try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
+        catch { return new(); }
+    }
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-file-invoice-dollar"></i> Reports</h2>
+        <p class="page-subtitle">Project reports and financial summaries</p>
+    </div>
+
+    <div class="cards-row">
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-circle-dollar" style="color:#16a34a;"></i></div>
+                <p class="stat-label">TOTAL INCOME</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@(Model.TotalIncome.ToString("N0"))</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-receipt" style="color:#dc2626;"></i></div>
+                <p class="stat-label">TOTAL EXPENSES</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@(Model.TotalExpenses.ToString("N0"))</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-scale-balanced" style="color:@(Model.NetBalance >= 0 ? "#16a34a" : "#dc2626");"></i></div>
+                <p class="stat-label">NET BALANCE</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value" style="color:@(Model.NetBalance >= 0 ? "#16a34a" : "#dc2626");">@(Model.NetBalance.ToString("N0"))</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-database" style="color:#2563eb;"></i></div>
+                <p class="stat-label">PROJECTS</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@Model.AllProjects.Count</h2></div>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <form method="get" action="/projectmanager/reports" class="filter-form">
+            <div class="filter-left">
+                <select class="filter-select" name="section" onchange="this.form.submit();">
+                    <option value="All" selected="@(Model.ReportSection == "All" ? "selected" : null)">All Sections</option>
+                    <option value="Projects" selected="@(Model.ReportSection == "Projects" ? "selected" : null)">Projects</option>
+                    <option value="Tasks" selected="@(Model.ReportSection == "Tasks" ? "selected" : null)">Tasks</option>
+                    <option value="Budget" selected="@(Model.ReportSection == "Budget" ? "selected" : null)">Budget vs Actual</option>
+                    <option value="Income" selected="@(Model.ReportSection == "Income" ? "selected" : null)">Income</option>
+                    <option value="Expenses" selected="@(Model.ReportSection == "Expenses" ? "selected" : null)">Expenses</option>
+                    <option value="Profitability" selected="@(Model.ReportSection == "Profitability" ? "selected" : null)">Project Profitability</option>
+                    <option value="CashFlow" selected="@(Model.ReportSection == "CashFlow" ? "selected" : null)">Cash Flow Trends</option>
+                    <option value="Estimates" selected="@(Model.ReportSection == "Estimates" ? "selected" : null)">Estimate vs Actual</option>
+                    <option value="CostEstimates" selected="@(Model.ReportSection == "CostEstimates" ? "selected" : null)">Cost Estimates</option>
+                    <option value="ProjectBudgets" selected="@(Model.ReportSection == "ProjectBudgets" ? "selected" : null)">Project Budgets</option>
+                    <option value="Progress" selected="@(Model.ReportSection == "Progress" ? "selected" : null)">Progress</option>
+                    <option value="Issues" selected="@(Model.ReportSection == "Issues" ? "selected" : null)">Issues</option>
+                    <option value="Resources" selected="@(Model.ReportSection == "Resources" ? "selected" : null)">Resources</option>
+                </select>
+                <select class="filter-select" name="status" onchange="this.form.submit();">
+                    <option value="All" selected="@(Model.StatusFilter == "All" ? "selected" : null)">All Statuses</option>
+                    <option value="Completed" selected="@(Model.StatusFilter == "Completed" ? "selected" : null)">Completed</option>
+                    <option value="Pending" selected="@(Model.StatusFilter == "Pending" ? "selected" : null)">Pending</option>
+                    <option value="Approved" selected="@(Model.StatusFilter == "Approved" ? "selected" : null)">Approved</option>
+                    <option value="Cancelled" selected="@(Model.StatusFilter == "Cancelled" ? "selected" : null)">Cancelled</option>
+                    <option value="Pending Approval" selected="@(Model.StatusFilter == "Pending Approval" ? "selected" : null)">Pending Approval</option>
+                    <option value="Waiting for PM Approval" selected="@(Model.StatusFilter == "Waiting for PM Approval" ? "selected" : null)">Waiting for PM Approval</option>
+                    <option value="Rejected" selected="@(Model.StatusFilter == "Rejected" ? "selected" : null)">Rejected</option>
+                </select>
+                <div class="date-filter-wrapper">
+                    <i class="fas fa-calendar-alt"></i>
+                    <select class="filter-select date-filter-select" name="dateRange" onchange="this.form.submit();">
+                        <option value="all" selected="@(Model.SelectedDateRange == "all" ? "selected" : null)">All Dates</option>
+                        <option value="today" selected="@(Model.SelectedDateRange == "today" ? "selected" : null)">Today</option>
+                        <option value="thisweek" selected="@(Model.SelectedDateRange == "thisweek" ? "selected" : null)">This Week</option>
+                        <option value="thismonth" selected="@(Model.SelectedDateRange == "thismonth" ? "selected" : null)">This Month</option>
+                        <option value="thisyear" selected="@(Model.SelectedDateRange == "thisyear" ? "selected" : null)">This Year</option>
+                        <option value="customrange" selected="@(Model.SelectedDateRange == "customrange" ? "selected" : null)">Custom Range</option>
+                    </select>
+                </div>
+                @if (Model.SelectedDateRange == "customrange")
+                {
+                    <div class="date-range-inputs">
+                        <input type="date" class="filter-select date-range-picker" name="startDate" value="@Model.CustomStartDate?.ToString("yyyy-MM-dd")" />
+                        <span style="color:#64748b;font-weight:600;">to</span>
+                        <input type="date" class="filter-select date-range-picker" name="endDate" value="@Model.CustomEndDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                }
+                <a class="btn-clear" href="/projectmanager/reports"><i class="fas fa-filter"></i> Clear Filter</a>
+            </div>
+            <div class="filter-right">
+                <input type="text" placeholder="Search..." class="search-input" name="search" value="@Model.Search" />
+            </div>
+        </form>
+        <form method="post" action="/ProjectManager/ExportPdf" class="pdf-form">
+            <input type="hidden" name="section" value="@Model.ReportSection" />
+            <input type="hidden" name="status" value="@Model.StatusFilter" />
+            <input type="hidden" name="dateRange" value="@Model.SelectedDateRange" />
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="startDate" value="@Model.CustomStartDate?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="endDate" value="@Model.CustomEndDate?.ToString("yyyy-MM-dd")" />
+            <button type="submit" class="btn-new"><i class="fas fa-file-pdf"></i> Generate Report</button>
+        </form>
+    </div>
+
+    <div class="summary-strip">
+        <div class="summary-item"><span class="legend-dot" style="background:#ca8a04;"></span> Budget <strong>@Model.TotalBudget.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#ef4444;"></span> Spent <strong>@Model.TotalSpent.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#16a34a;"></span> Income <strong>@Model.TotalIncome.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#ef4444;"></span> Expenses <strong>@Model.TotalExpenses.ToString("N2")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Estimates <strong>@Model.AllEstimates.Count</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#ea580c;"></span> Open Issues <strong>@Model.AllIssues.Count(i => i.Status == "Open" || i.Status == "In Progress")</strong></div>
+        <div class="summary-item"><span class="legend-dot" style="background:#06b6d4;"></span> Tasks <strong>@Model.AllTasks.Count</strong></div>
+    </div>
+
+    <div class="table-section">
+        <div class="table-header">
+            <span><i class="fas fa-list"></i> @Model.CurrentSectionTitle</span>
+            <span class="item-count">@Model.CurrentItemCount items</span>
+        </div>
+        <div class="table-scroll">
+            <table class="project-table">
+                <thead>
+                    <tr>
+                        @if (Model.ReportSection == "All" || Model.ReportSection == "Projects")
+                        {
+                            <th>PROJECT</th><th>LOCATION</th><th>STATUS</th><th>START DATE</th><th>DUE DATE</th>
+                        }
+                        @if (Model.ReportSection == "Tasks")
+                        {
+                            <th>TASK</th><th>PROJECT</th><th>ASSIGNEE</th><th>STATUS</th><th>PRIORITY</th><th>PROGRESS</th><th>DUE DATE</th>
+                        }
+                        @if (Model.ReportSection == "Budget")
+                        {
+                            <th>PROJECT</th><th>BUDGET</th><th>SPENT</th><th>REMAINING</th><th>HEALTH</th><th>STATUS</th>
+                        }
+                        @if (Model.ReportSection == "Income")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>CATEGORY</th><th>DESCRIPTION</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th>
+                        }
+                        @if (Model.ReportSection == "Expenses")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>CATEGORY</th><th>DESCRIPTION</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th>
+                        }
+                        @if (Model.ReportSection == "Profitability")
+                        {
+                            <th>PROJECT</th><th>INCOME</th><th>EXPENSES</th><th>PROFIT/LOSS</th><th>MARGIN</th>
+                        }
+                        @if (Model.ReportSection == "CashFlow")
+                        {
+                            <th>PERIOD</th><th>INFLOW</th><th>OUTFLOW</th><th>NET</th>
+                        }
+                        @if (Model.ReportSection == "Estimates")
+                        {
+                            <th>PROJECT</th><th>ESTIMATED</th><th>ACTUAL</th><th>VARIANCE</th><th>STATUS</th>
+                        }
+                        @if (Model.ReportSection == "All" || Model.ReportSection == "CostEstimates")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>LOCATION</th><th>MANPOWER</th><th>MATERIALS</th><th>EQUIPMENT</th><th>TOTAL</th><th>STATUS</th><th>DATE</th>
+                        }
+                        @if (Model.ReportSection == "All" || Model.ReportSection == "ProjectBudgets")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>LOCATION</th><th>MANPOWER</th><th>MATERIALS</th><th>EQUIPMENT</th><th>TOTAL</th><th>SPENT</th><th>REMAINING</th><th>STATUS</th><th>DATE</th>
+                        }
+                        @if (Model.ReportSection == "Progress")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>PROGRESS</th><th>STATUS</th><th>DATE</th>
+                        }
+                        @if (Model.ReportSection == "Issues")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>TYPE</th><th>SEVERITY</th><th>STATUS</th><th>DATE REPORTED</th><th>RESOLVED DATE</th>
+                        }
+                        @if (Model.ReportSection == "Resources")
+                        {
+                            <th>ID</th><th>PROJECT</th><th>MATERIALS</th><th>EQUIPMENT</th><th>STATUS</th><th>NEEDED BY</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Projects")
+                    {
+                        if (!Model.FilteredProjects.Any()) { <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:40px;">No project data found.</td></tr> }
+                        else
+                        {
+                            foreach (var p in Model.FilteredProjects)
+                            {
+                                <tr>
+                                    <td style="font-weight:600;color:#0f172a;">@p.ProjectName</td>
+                                    <td>@(p.Location ?? "-")</td>
+                                    <td><span class="badge @StatusClass(p.Status ?? "")">@p.Status</span></td>
+                                    <td>@(p.StartDate?.ToString("MMM d, yyyy") ?? "-")</td>
+                                    <td>@(p.DueDate?.ToString("MMM d, yyyy") ?? "-")</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="5" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Tasks")
+                    {
+                        if (!Model.FilteredTasks.Any()) { <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;">No task data found.</td></tr> }
+                        else
+                        {
+                            foreach (var t in Model.FilteredTasks)
+                            {
+                                <tr>
+                                    <td style="font-weight:600;color:#0f172a;">@t.Name</td>
+                                    <td>@t.Project</td>
+                                    <td>@(t.AssignedTo ?? "-")</td>
+                                    <td><span class="badge @StatusClass(t.Status ?? "")">@t.Status</span></td>
+                                    <td>@(t.Priority ?? "-")</td>
+                                    <td>@t.ProgressPercentage%</td>
+                                    <td>@(t.DueDate?.ToString("MMM d, yyyy") ?? "-")</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="7" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Budget")
+                    {
+                        if (!Model.BudgetSummaryItems.Any()) { <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:40px;">No budget data found.</td></tr> }
+                        else
+                        {
+                            foreach (var b in Model.BudgetSummaryItems)
+                            {
+                                <tr>
+                                    <td style="font-weight:600;color:#0f172a;">@b.Project</td>
+                                    <td style="text-align:right;">@(b.Budget.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(b.Spent.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:600;color:@(b.Remaining < 0 ? "#dc2626" : "#16a34a");">@(b.Remaining.ToString("N0"))</td>
+                                    <td><span class="badge" style="color:@HealthColor(b.Health);font-weight:700;">@b.Health</span></td>
+                                    <td><span class="badge @StatusClass(b.Status)">@b.Status</span></td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="6" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Income")
+                    {
+                        if (!Model.FilteredIncomes.Any()) { <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;">No income transactions found.</td></tr> }
+                        else
+                        {
+                            foreach (var inc in Model.FilteredIncomes)
+                            {
+                                <tr>
+                                    <td><span style="color:#16a34a;font-weight:600;">INC-@(inc.Id.ToString("D3"))</span></td>
+                                    <td>@inc.Project</td>
+                                    <td><span class="badge badge-green">@(inc.Category ?? "-")</span></td>
+                                    <td>@(inc.Description ?? "-")</td>
+                                    <td style="text-align:right;font-weight:600;color:#16a34a;">@(inc.Amount.ToString("N0"))</td>
+                                    <td><span class="badge @StatusClass(inc.Status ?? "")">@inc.Status</span></td>
+                                    <td>@(inc.TransactionDate.ToString("MMM d, yyyy h:mm tt"))</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="7" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Expenses")
+                    {
+                        if (!Model.FilteredExpenses.Any()) { <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;">No expense transactions found.</td></tr> }
+                        else
+                        {
+                            foreach (var e in Model.FilteredExpenses)
+                            {
+                                <tr>
+                                    <td><span style="color:#dc2626;font-weight:600;">EXP-@(e.Id.ToString("D3"))</span></td>
+                                    <td>@e.Project</td>
+                                    <td><span class="badge badge-red">@(e.Category ?? "-")</span></td>
+                                    <td>@(e.Description ?? "-")</td>
+                                    <td style="text-align:right;font-weight:600;color:#dc2626;">@(e.Amount.ToString("N0"))</td>
+                                    <td><span class="badge @StatusClass(e.Status ?? "")">@e.Status</span></td>
+                                    <td>@(e.ExpenseDate.ToString("MMM d, yyyy h:mm tt"))</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="7" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Profitability")
+                    {
+                        if (!Model.ProfitabilityItems.Any()) { <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:40px;">No profitability data found.</td></tr> }
+                        else
+                        {
+                            foreach (var p in Model.ProfitabilityItems)
+                            {
+                                var plColor = p.ProfitLoss >= 0 ? "#16a34a" : "#dc2626";
+                                <tr>
+                                    <td style="font-weight:600;color:#0f172a;">@p.Project</td>
+                                    <td style="text-align:right;color:#16a34a;">@(p.Income.ToString("N0"))</td>
+                                    <td style="text-align:right;color:#dc2626;">@(p.Expenses.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:700;color:@plColor;">@(p.ProfitLoss.ToString("N0"))</td>
+                                    <td style="text-align:right;"><span class="badge @(p.Margin >= 0 ? "badge-green" : "badge-red")">@(p.Margin.ToString("N1"))%</span></td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="5" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "CashFlow")
+                    {
+                        if (!Model.CashFlowItems.Any()) { <tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:40px;">No cash flow data found.</td></tr> }
+                        else
+                        {
+                            foreach (var m in Model.CashFlowItems)
+                            {
+                                var netColor = m.Net >= 0 ? "#16a34a" : "#dc2626";
+                                <tr>
+                                    <td style="font-weight:600;">@m.Period</td>
+                                    <td style="text-align:right;color:#16a34a;">@(m.Inflow.ToString("N0"))</td>
+                                    <td style="text-align:right;color:#dc2626;">@(m.Outflow.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:700;color:@netColor;">@(m.Net.ToString("N0"))</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="4" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Estimates")
+                    {
+                        if (!Model.EstimateVsActualItems.Any()) { <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:40px;">No estimate data found.</td></tr> }
+                        else
+                        {
+                            foreach (var e in Model.EstimateVsActualItems)
+                            {
+                                var varColor = e.Variance >= 0 ? "#16a34a" : "#dc2626";
+                                <tr>
+                                    <td style="font-weight:600;color:#0f172a;">@e.Project</td>
+                                    <td style="text-align:right;">@(e.Estimated.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(e.Actual.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:700;color:@varColor;">@(e.Variance >= 0 ? "+" : "")@(e.Variance.ToString("N0"))</td>
+                                    <td><span class="badge @StatusClass(e.Status)">@e.Status</span></td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="5" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "CostEstimates")
+                    {
+                        if (!Model.FilteredEstimates.Any()) { <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:40px;">No cost estimates found.</td></tr> }
+                        else
+                        {
+                            foreach (var e in Model.FilteredEstimates)
+                            {
+                                <tr>
+                                    <td><span style="color:#7c3aed;font-weight:600;">EST-@(e.EstimateId.ToString("D3"))</span></td>
+                                    <td>@e.ProjectName</td>
+                                    <td>@(e.Location ?? "-")</td>
+                                    <td style="text-align:right;">@(e.LaborCost.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(e.MaterialsCost.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(e.EquipmentCost.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:700;">@(e.TotalCost.ToString("N0"))</td>
+                                    <td><span class="badge @GetEstimateStatusClass(e.Status)">@e.Status</span></td>
+                                    <td>@(e.CreatedDate.ToString("MMM d, yyyy h:mm tt"))</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="9" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "ProjectBudgets")
+                    {
+                        if (!Model.FilteredBudgets.Any()) { <tr><td colspan="11" style="text-align:center;color:#94a3b8;padding:40px;">No project budgets found.</td></tr> }
+                        else
+                        {
+                            foreach (var b in Model.FilteredBudgets)
+                            {
+                                var remainingColor = b.Remaining < 0 ? "#dc2626" : (b.TotalBudget > 0 && b.Remaining / b.TotalBudget < 0.1m ? "#d97706" : "#16a34a");
+                                <tr>
+                                    <td><span style="color:#0d9488;font-weight:600;">BUD-@(b.Id.ToString("D3"))</span></td>
+                                    <td>@b.Project</td>
+                                    <td>@(b.Location ?? "-")</td>
+                                    <td style="text-align:right;">@(b.ManpowerBudget.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(b.MaterialsBudget.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(b.EquipmentBudget.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:700;">@(b.TotalBudget.ToString("N0"))</td>
+                                    <td style="text-align:right;">@(b.TotalSpent.ToString("N0"))</td>
+                                    <td style="text-align:right;font-weight:600;color:@remainingColor;">@(b.Remaining.ToString("N0"))</td>
+                                    <td><span class="badge @GetBudgetStatusClass(b.Status)">@b.Status</span></td>
+                                    <td>@(b.CreatedAt.ToString("MMM d, yyyy h:mm tt"))</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="11" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Progress")
+                    {
+                        if (!Model.FilteredProgress.Any()) { <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:40px;">No progress data found.</td></tr> }
+                        else
+                        {
+                            foreach (var p in Model.FilteredProgress)
+                            {
+                                <tr>
+                                    <td><span style="color:#2563eb;font-weight:600;">@p.ProgressId</span></td>
+                                    <td style="font-weight:600;color:#0f172a;">@p.Project</td>
+                                    <td>
+                                        <div class="progress-bar-wrapper">
+                                            <span class="badge badge-blue">@p.ProgressPercent%</span>
+                                            <div class="progress-track">
+                                                <div class="progress-fill" style="width:@p.ProgressPercent%;"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge @StatusClass(p.Status ?? "")">@p.Status</span></td>
+                                    <td>@(p.UpdateDate.ToString("MMM dd, yyyy h:mm tt"))</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="5" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Issues")
+                    {
+                        if (!Model.FilteredIssues.Any()) { <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;">No issue data found.</td></tr> }
+                        else
+                        {
+                            foreach (var i in Model.FilteredIssues)
+                            {
+                                <tr>
+                                    <td><span style="color:#ea580c;font-weight:600;">ISS-@(i.Id.ToString("D3"))</span></td>
+                                    <td>@i.Project</td>
+                                    <td>@i.IssueType</td>
+                                    <td><span class="badge @(i.Severity == "Critical" ? "badge-red" : i.Severity == "High" ? "badge-orange" : i.Severity == "Medium" ? "badge-yellow" : "badge-slate")">@i.Severity</span></td>
+                                    <td><span class="badge @StatusClass(i.Status ?? "")">@i.Status</span></td>
+                                    <td>@(i.DateReported.ToString("MMM d, yyyy h:mm tt"))</td>
+                                    <td>@(i.ResolvedDate != null ? i.ResolvedDate.Value.ToString("MMM d, yyyy h:mm tt") : "-")</td>
+                                </tr>
+                            }
+                        }
+                        if (Model.ReportSection == "All") { <tr><td colspan="7" style="padding:8px;border-bottom:2px solid #e2e8f0;"></td></tr> }
+                    }
+                    @if (Model.ReportSection == "All" || Model.ReportSection == "Resources")
+                    {
+                        if (!Model.FilteredResources.Any()) { <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:40px;">No resource data found.</td></tr> }
+                        else
+                        {
+                            foreach (var r in Model.FilteredResources)
+                            {
+                                var materials = GetMaterials(r.MaterialsJson);
+                                var equipment = GetEquipment(r.EquipmentsJson);
+                                <tr>
+                                    <td><span style="color:#7c3aed;font-weight:600;">@r.RequestId</span></td>
+                                    <td>@r.Project</td>
+                                    <td>@(materials.Any() ? string.Join(", ", materials) : "-")</td>
+                                    <td>@(equipment.Any() ? string.Join(", ", equipment) : "-")</td>
+                                    <td><span class="badge @StatusClass(r.Status ?? "")">@r.Status</span></td>
+                                    <td>@(r.NeededBy.ToString("MMM dd, yyyy h:mm tt"))</td>
+                                </tr>
+                            }
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; padding:24px; gap:20px; }
+    .page-header { flex-shrink:0; }
+    .page-title { margin:0 0 6px; font-size:26px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#10b981; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+    .cards-row { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; flex-shrink:0; }
+    .stat-card { background:#fff; border-radius:12px; padding:24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; }
+    .stat-left { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+    .stat-right { display:flex; flex-direction:column; align-items:flex-end; }
+    .stat-label { margin:0; font-size:13px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+    .stat-value { margin:0; font-size:32px; font-weight:700; color:#0f172a; }
+    .stat-icon { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:4px; }
+    .filter-bar { display:flex; justify-content:space-between; align-items:center; flex-shrink:0; flex-wrap:wrap; gap:12px; }
+    .filter-form { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; flex:1; }
+    .filter-left { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .filter-right { display:flex; align-items:center; gap:12px; }
+    .pdf-form { display:inline-flex; margin:0; }
+    .filter-select { height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; color:#475569; background:#fff; min-width:130px; cursor:pointer; font-weight:500; }
+    .filter-select:focus { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,0.1); }
+    .btn-clear { height:40px; padding:0 18px; border:1.5px solid #f87171; border-radius:8px; background:#fff; color:#dc2626; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+    .btn-clear:hover { background:#fef2f2; border-color:#ef4444; }
+    .btn-new { height:40px; padding:0 20px; border:none; border-radius:8px; background:#10b981; color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; font-family:'Poppins',sans-serif; }
+    .btn-new:hover { background:#059669; box-shadow:0 4px 6px -1px rgba(16,185,129,0.3); }
+    .btn-new i { margin-right:8px; }
+    .search-input { width:240px; height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; box-sizing:border-box; }
+    .search-input:focus { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,0.1); }
+    .date-filter-wrapper { position:relative; display:inline-flex; }
+    .date-filter-wrapper i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#64748b; font-size:14px; pointer-events:none; z-index:1; }
+    .date-filter-select { padding-left:36px !important; }
+    .date-range-inputs { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .date-range-picker { min-width:140px; }
+    .summary-strip { display:flex; flex-wrap:wrap; gap:14px 26px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; font-size:13px; color:#475569; align-items:center; flex-shrink:0; }
+    .summary-strip strong { color:#0f172a; }
+    .legend-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; }
+    .table-section { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; overflow:hidden; flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
+    .table-header { padding:18px 24px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center; }
+    .table-header span { font-weight:600; color:#334155; font-size:16px; }
+    .table-header span i { margin-right:10px; color:#10b981; }
+    .table-header .item-count { font-size:13px; color:#64748b; background:#e2e8f0; padding:8px 14px; border-radius:20px; white-space:nowrap; font-weight:500; }
+    .table-scroll { flex:1 1 0; overflow-y:auto; overflow-x:auto; }
+    .project-table { width:100%; border-collapse:collapse; }
+    .project-table th { background:#f8fafc; padding:14px 20px; text-align:left; font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+    .project-table td { padding:16px 20px; font-size:14px; color:#475569; border-bottom:1px solid #f1f5f9; white-space:nowrap; }
+    .project-table tbody tr:hover { background:#f8fafc; }
+    .project-table tbody tr { transition:background 0.15s; }
+    .badge { display:inline-block; font-size:12px; font-weight:600; white-space:nowrap; }
+    .badge-blue { color:#2563eb; }
+    .badge-green { color:#16a34a; }
+    .badge-red { color:#dc2626; }
+    .badge-yellow { color:#d97706; }
+    .badge-orange { color:#ea580c; }
+    .badge-teal { color:#0d9488; }
+    .badge-purple { color:#7c3aed; }
+    .badge-slate { color:#64748b; }
+
+    .progress-bar-wrapper {
+        display:flex;
+        align-items:center;
+        gap:10px;
+    }
+    .progress-track {
+        width:100px;
+        height:6px;
+        background:#e2e8f0;
+        border-radius:4px;
+        overflow:hidden;
+    }
+    .progress-fill {
+        height:100%;
+        background:linear-gradient(90deg,#2563eb,#3b82f6);
+        border-radius:4px;
+        transition:width 0.3s;
+    }
+
+    @@media (max-width:1200px) { .cards-row { grid-template-columns:repeat(3,1fr); } }
+    @@media (max-width:1024px) { .cards-row { grid-template-columns:repeat(2,1fr); } .search-input { width:180px; } }
+    @@media (max-width:768px) { .page-container { padding:16px; } .cards-row { grid-template-columns:1fr; } .filter-form { flex-direction:column; align-items:stretch; } .filter-left,.filter-right { width:100%; justify-content:flex-start; } .search-input { width:100%; } .date-range-inputs { width:100%; } .date-range-picker { flex:1; min-width:0; } .item-count { display:none; } }
+</style>

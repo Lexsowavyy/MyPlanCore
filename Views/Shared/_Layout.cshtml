@@ -1,0 +1,805 @@
+@inject PlanCoreMAUI.Services.AuthService Auth
+@inject PlanCoreMAUI.Services.SubscriptionService Sub
+@using System.Text
+@{
+    _currentPathValue = ViewContext.HttpContext.Request.Path.Value ?? "/";
+    string roleName = Auth.CurrentRole ?? "";
+    var navItems = BuildNav(roleName);
+    if (!string.IsNullOrEmpty(roleName) && roleName is not "SuperAdmin" and not "Admin")
+    {
+        navItems = FilterNavItemsBySubscription(navItems);
+    }
+    int timeoutSeconds = PlanCoreMAUI.Models.SystemSettings.SessionTimeout * 60;
+    if (timeoutSeconds <= 0) timeoutSeconds = 300;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <partial name="_PageHead" />
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <header class="mobile-topbar">
+        <button type="button" class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-controls="appSidebar" aria-expanded="false">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="mobile-brand">
+            <img src="~/images/logo.png" alt="PlanCore" />
+            <span>PlanCore</span>
+        </div>
+    </header>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <img src="~/images/logo.png" alt="PlanCore" />
+                <div class="brand-text">
+                    <h3>PlanCore</h3>
+                    <p>@RoleDisplayName(roleName)</p>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                @Html.Raw(RenderNav(navItems))
+                <div class="nav-divider"></div>
+                <form method="post" action="/Account/SignOut" style="margin: 0;">
+                    <button type="submit" class="nav-item logout" style="width: 100%; background: transparent; border: none; text-align: left;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </form>
+            </nav>
+        </aside>
+
+        <main class="main-content" style="position:relative;">
+            @RenderBody()
+        </main>
+    </div>
+
+    <div id="sessionTimeoutBanner" style="display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: #fef2f2; border-bottom: 1px solid #fecaca; padding: 10px 20px; text-align: center; color: #dc2626; font-size: 14px; font-weight: 500;">
+        <i class="fas fa-clock" style="margin-right: 8px;"></i> Session will expire in <span id="timeoutCountdown">15</span> seconds due to inactivity.
+    </div>
+    <div id="sessionTimeoutOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center; font-family: 'Poppins', sans-serif;">
+        <div style="background: #fff; border-radius: 16px; padding: 32px; max-width: 450px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <i class="fas fa-clock" style="font-size: 48px; color: #dc2626; margin-bottom: 16px;"></i>
+            <h3 style="margin: 0 0 12px; color: #0f172a; font-size: 20px;">Session Expired</h3>
+            <p style="margin: 0 0 20px; color: #64748b; font-size: 14px;">Your session has expired due to inactivity. You will be redirected to the login page.</p>
+            <div style="color: #dc2626; font-size: 16px; font-weight: 600; margin-bottom: 16px;">Redirecting in <span id="redirectCountdown">5</span> seconds...</div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var timeoutSec = @timeoutSeconds;
+            var leadSec = 30;
+            var last = Date.now();
+            var warned = false;
+            var expired = false;
+            var countdownInterval = null;
+            var redirectInterval = null;
+
+            function reset() {
+                if (expired) return;
+                last = Date.now();
+                if (warned) {
+                    warned = false;
+                    var banner = document.getElementById('sessionTimeoutBanner');
+                    if (banner) banner.style.display = 'none';
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                    }
+                }
+            }
+
+            document.addEventListener('click', reset);
+            document.addEventListener('keydown', reset);
+            document.addEventListener('touchstart', reset);
+            document.addEventListener('scroll', reset);
+
+            var banner = document.getElementById('sessionTimeoutBanner');
+            var overlay = document.getElementById('sessionTimeoutOverlay');
+
+            setInterval(function () {
+                if (expired) return;
+
+                var elapsed = (Date.now() - last) / 1000;
+                var remaining = timeoutSec - elapsed;
+
+                if (!warned && remaining <= leadSec && remaining > 0) {
+                    warned = true;
+                    if (banner) {
+                        banner.style.display = 'block';
+                        var countdownEl = document.getElementById('timeoutCountdown');
+                        if (countdownEl) {
+                            countdownInterval = setInterval(function() {
+                                var currentRemaining = Math.ceil(timeoutSec - (Date.now() - last) / 1000);
+                                if (currentRemaining > 0) {
+                                    countdownEl.textContent = currentRemaining;
+                                } else {
+                                    clearInterval(countdownInterval);
+                                }
+                            }, 1000);
+                        }
+                    }
+                }
+
+                if (elapsed >= timeoutSec) {
+                    expired = true;
+                    if (banner) banner.style.display = 'none';
+                    if (overlay) {
+                        overlay.style.display = 'flex';
+                        // Disable all interactions
+                        document.body.style.pointerEvents = 'none';
+                        overlay.style.pointerEvents = 'auto';
+
+                        var redirectCountdown = 5;
+                        var redirectEl = document.getElementById('redirectCountdown');
+                        if (redirectEl) {
+                            redirectEl.textContent = redirectCountdown;
+                            redirectInterval = setInterval(function() {
+                                redirectCountdown--;
+                                if (redirectEl) redirectEl.textContent = redirectCountdown;
+                                if (redirectCountdown <= 0) {
+                                    clearInterval(redirectInterval);
+                                    window.location.href = '/Account/SignOut';
+                                }
+                            }, 1000);
+                        }
+                    } else {
+                        window.location.href = '/Account/SignOut';
+                    }
+                }
+            }, 1000);
+        })();
+    </script>
+    <script>
+        document.addEventListener('click', function (e) {
+            var parent = e.target.closest('.nav-parent');
+            if (parent) {
+                parent.classList.toggle('expanded');
+                var kids = parent.nextElementSibling;
+                if (kids && kids.classList.contains('nav-children')) {
+                    kids.style.display = kids.style.display === 'block' ? 'none' : 'block';
+                }
+            }
+        });
+    </script>
+    <script>
+        (function () {
+            var sidebar = document.getElementById('appSidebar');
+            var toggle = document.getElementById('menuToggle');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            if (!sidebar || !toggle || !backdrop) return;
+            function openNav() {
+                sidebar.classList.add('open');
+                backdrop.classList.add('show');
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+            function closeNav() {
+                sidebar.classList.remove('open');
+                backdrop.classList.remove('show');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+            toggle.addEventListener('click', function () {
+                sidebar.classList.contains('open') ? closeNav() : openNav();
+            });
+            backdrop.addEventListener('click', closeNav);
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeNav();
+            });
+            sidebar.addEventListener('click', function (e) {
+                if (e.target.closest('a')) closeNav();
+            });
+        })();
+    </script>
+
+    <style>
+        .app-layout {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 230px;
+            min-width: 230px;
+            height: 100%;
+            background: #1a2b4a;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-nav {
+            padding: 4px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .sidebar-brand {
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand img {
+            height: 44px;
+            width: auto;
+            max-width: 150px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .sidebar-brand .brand-text h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .sidebar-brand .brand-text p {
+            margin: 2px 0 0;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.55);
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            background: #2563eb;
+            color: #fff;
+            border-right: 3px solid #f59e0b;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .nav-item.logout {
+            margin-top: auto;
+            color: rgba(255,100,100,0.9);
+        }
+
+        .nav-item.logout:hover {
+            background: rgba(239,68,68,0.15);
+            color: #ef4444;
+        }
+
+        .nav-parent { cursor: pointer; }
+        .nav-parent.expanded { background: rgba(255,255,255,0.08); color: #fff; }
+        .nav-arrow { margin-left: auto; font-size: 11px; transition: transform 0.2s; }
+        .nav-parent.expanded .nav-arrow { transform: rotate(180deg); }
+        .nav-children { margin-left: 12px; border-left: 1px solid rgba(255,255,255,0.1); }
+        .nav-child { padding-left: 26px !important; font-size: 13px; }
+        .nav-child i { font-size: 13px; width: 16px; }
+
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 12px 0;
+        }
+
+        .main-content {
+            flex: 1;
+            width: 100%;
+            padding: 20px 24px;
+            background: #f4f6fb;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Mobile navigation: hidden on desktop */
+        .mobile-topbar { display: none; }
+        .sidebar-backdrop { display: none; }
+
+        @@media (max-width: 1024px) {
+            .sidebar {
+                width: 200px;
+                min-width: 200px;
+            }
+        }
+        @@media (max-width: 768px) {
+            .mobile-topbar {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 56px;
+                padding: 0 14px;
+                background: #1a2b4a;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                z-index: 1200;
+            }
+            .mobile-topbar .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                flex-shrink: 0;
+                background: rgba(255,255,255,0.1);
+                border: none;
+                border-radius: 8px;
+                color: #fff;
+                font-size: 18px;
+                cursor: pointer;
+            }
+            .mobile-topbar .menu-toggle:active { background: rgba(255,255,255,0.2); }
+            .mobile-topbar .mobile-brand {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                overflow: hidden;
+            }
+            .mobile-topbar .mobile-brand img { height: 32px; width: auto; border-radius: 6px; }
+            .mobile-topbar .mobile-brand span { color: #fff; font-weight: 700; font-size: 1.05rem; white-space: nowrap; }
+
+            .app-layout { flex-direction: column; }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                width: 78%;
+                max-width: 300px;
+                min-width: 0;
+                height: auto;
+                z-index: 1300;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .sidebar.open { transform: translateX(0); }
+
+            .sidebar-backdrop {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(2, 6, 23, 0.55);
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+                z-index: 1250;
+            }
+            .sidebar-backdrop.show { opacity: 1; visibility: visible; }
+
+            .main-content { padding: 72px 16px 20px; }
+
+            /* Collapse data tables into stacked, fully-visible cards */
+            .table-scroll { overflow-x: visible !important; }
+
+            .project-table,
+            .admin-table,
+            .tenant-table,
+            .ledger-table,
+            .backup-table,
+            .table-section table,
+            .table-scroll table {
+                display: block !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                border: 0;
+            }
+
+            .project-table thead,
+            .admin-table thead,
+            .tenant-table thead,
+            .ledger-table thead,
+            .backup-table thead,
+            .table-section table thead,
+            .table-scroll table thead {
+                display: none !important;
+            }
+
+            .project-table tbody,
+            .admin-table tbody,
+            .tenant-table tbody,
+            .ledger-table tbody,
+            .backup-table tbody,
+            .table-section table tbody,
+            .table-scroll table tbody {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            .project-table tbody tr,
+            .admin-table tbody tr,
+            .tenant-table tbody tr,
+            .ledger-table tbody tr,
+            .backup-table tbody tr,
+            .table-section table tbody tr,
+            .table-scroll table tbody tr {
+                display: block !important;
+                width: 100% !important;
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+                overflow: hidden;
+            }
+
+            .project-table tbody td,
+            .admin-table tbody td,
+            .tenant-table tbody td,
+            .ledger-table tbody td,
+            .backup-table tbody td,
+            .table-section table tbody td,
+            .table-scroll table tbody td {
+                display: block !important;
+                width: auto !important;
+                padding: 9px 14px;
+                border-bottom: 1px solid #f1f5f9;
+                text-align: left !important;
+                white-space: normal;
+            }
+
+            .project-table tbody td:last-child,
+            .admin-table tbody td:last-child,
+            .tenant-table tbody td:last-child,
+            .ledger-table tbody td:last-child,
+            .backup-table tbody td:last-child,
+            .table-section table tbody td:last-child,
+            .table-scroll table tbody td:last-child {
+                border-bottom: 0;
+            }
+
+            .project-table tbody td::before,
+            .admin-table tbody td::before,
+            .tenant-table tbody td::before,
+            .ledger-table tbody td::before,
+            .backup-table tbody td::before,
+            .table-section table tbody td::before,
+            .table-scroll table tbody td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.66rem;
+                font-weight: 700;
+                letter-spacing: 0.6px;
+                text-transform: uppercase;
+                color: #94a3b8;
+                margin-bottom: 3px;
+            }
+
+            .project-table tbody tr.table-empty-row,
+            .admin-table tbody tr.table-empty-row,
+            .tenant-table tbody tr.table-empty-row,
+            .ledger-table tbody tr.table-empty-row,
+            .backup-table tbody tr.table-empty-row,
+            .table-section table tbody tr.table-empty-row,
+            .table-scroll table tbody tr.table-empty-row {
+                background: transparent;
+                border: 0;
+                box-shadow: none;
+            }
+
+            .project-table tbody tr.table-empty-row td,
+            .admin-table tbody tr.table-empty-row td,
+            .tenant-table tbody tr.table-empty-row td,
+            .ledger-table tbody tr.table-empty-row td,
+            .backup-table tbody tr.table-empty-row td,
+            .table-section table tbody tr.table-empty-row td,
+            .table-scroll table tbody tr.table-empty-row td {
+                text-align: center !important;
+                padding: 24px 14px;
+            }
+
+            .project-table tbody tr.table-empty-row td::before,
+            .admin-table tbody tr.table-empty-row td::before,
+            .tenant-table tbody tr.table-empty-row td::before,
+            .ledger-table tbody tr.table-empty-row td::before,
+            .backup-table tbody tr.table-empty-row td::before,
+            .table-section table tbody tr.table-empty-row td::before,
+            .table-scroll table tbody tr.table-empty-row td::before {
+                display: none;
+            }
+        }
+    </style>
+    <script src="~/js/location-suggest.js"></script>
+    <script>
+        (function () {
+            var selector = '.project-table, .admin-table, .tenant-table, .ledger-table, .backup-table, .table-section table, .table-scroll table';
+            function enhance(root) {
+                var tables = (root || document).querySelectorAll(selector);
+                Array.prototype.forEach.call(tables, function (table) {
+                    if (table.getAttribute('data-responsive') === 'ready') return;
+                    var headRow = table.querySelector('thead tr');
+                    if (!headRow) return;
+                    var headers = Array.prototype.slice.call(headRow.children).map(function (th) {
+                        return (th.textContent || '').trim();
+                    });
+                    Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
+                        var cells = tr.children;
+                        if (cells.length === 1 && cells[0].hasAttribute('colspan')) {
+                            tr.classList.add('table-empty-row');
+                            return;
+                        }
+                        Array.prototype.forEach.call(cells, function (td, i) {
+                            if (!td.hasAttribute('data-label') && headers[i]) {
+                                td.setAttribute('data-label', headers[i]);
+                            }
+                        });
+                    });
+                    table.setAttribute('data-responsive', 'ready');
+                });
+            }
+            window.enhanceResponsiveTables = enhance;
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () { enhance(); });
+            } else {
+                enhance();
+            }
+            window.addEventListener('load', function () { enhance(); });
+        })();
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
+
+@functions {
+    private class NavItem
+    {
+        public string Icon { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string Url { get; set; } = "";
+        public List<NavItem>? Children { get; set; }
+    }
+
+    private List<NavItem> BuildNav(string roleName)
+    {
+        return roleName switch
+        {
+            "ProjectManager" => GetProjectManagerNav(),
+            "Admin" => GetAdminNav(),
+            "Architect" => GetArchitectNav(),
+            "SiteEngineer" => GetSiteEngineerNav(),
+            "QuantitySurveyor" => GetQSNav(),
+            "FinanceOfficer" => GetFinanceNav(),
+            "SuperAdmin" => GetSuperAdminNav(),
+            _ => new List<NavItem>()
+        };
+    }
+
+    private string RenderNav(List<NavItem> items)
+    {
+        var sb = new StringBuilder();
+        foreach (var item in items)
+            RenderNavItem(sb, item, false);
+        return sb.ToString();
+    }
+
+    private void RenderNavItem(StringBuilder sb, NavItem item, bool isChild)
+    {
+        if (item.Children != null && item.Children.Count > 0)
+        {
+            bool expanded = item.Children.Any(c => IsActive(c.Url));
+            var itemClass = "nav-item nav-parent" + (expanded ? " expanded" : "");
+            sb.Append($"<div class=\"{itemClass}\"><i class=\"{item.Icon}\"></i><span>{item.Label}</span><i class=\"fas fa-chevron-down nav-arrow\"></i></div>");
+            sb.Append($"<div class=\"nav-children\" style=\"display:{(expanded ? "block" : "none")};\">");
+            foreach (var child in item.Children)
+                RenderNavItem(sb, child, true);
+            sb.Append("</div>");
+        }
+        else
+        {
+            var itemClass = isChild ? "nav-item nav-child" : "nav-item";
+            if (IsActive(item.Url)) itemClass += " active";
+            sb.Append($"<a class=\"{itemClass}\" href=\"{item.Url}\"><i class=\"{item.Icon}\"></i><span>{item.Label}</span></a>");
+        }
+    }
+
+    private bool IsActive(string url)
+    {
+        return _currentPathValue.Contains(url, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string _currentPathValue = "";
+
+    private string RoleDisplayName(string? roleName)
+    {
+        return roleName switch
+        {
+            "Admin" => "Administrator",
+            "ProjectManager" => "Project Manager",
+            "Architect" => "Architect",
+            "SiteEngineer" => "Site Engineer",
+            "QuantitySurveyor" => "Quantity Surveyor",
+            "FinanceOfficer" => "Finance Officer",
+            "SuperAdmin" => "Super Admin",
+            _ => "User"
+        };
+    }
+
+    private List<NavItem> GetProjectManagerNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/projectmanager" },
+        new NavItem { Icon = "fas fa-clipboard-list", Label = "Project Planning", Url = "/projectmanager/planning" },
+        new NavItem { Icon = "fas fa-calendar-check", Label = "Task Scheduling", Url = "/projectmanager/tasks" },
+            new NavItem { Icon = "fas fa-wallet", Label = "Budget Approval", Url = "/projectmanager/budget" },
+            new NavItem { Icon = "fas fa-receipt", Label = "Expense Approval", Url = "/projectmanager/expenses" },
+        new NavItem { Icon = "fas fa-calculator", Label = "Cost Estimates", Url = "/projectmanager/costestimates" },
+        new NavItem { Icon = "fas fa-hand-holding-usd", Label = "Income Monitoring", Url = "/projectmanager/income" },
+        new NavItem { Icon = "fas fa-chart-bar", Label = "Project Monitoring", Url = "/projectmanager/monitoring" },
+        new NavItem { Icon = "fas fa-exclamation-triangle", Label = "Risk Management", Url = "/projectmanager/risks" },
+        new NavItem { Icon = "fas fa-boxes-stacked", Label = "Resource Allocation", Url = "/projectmanager/resources" },
+        new NavItem { Icon = "fas fa-drafting-compass", Label = "Architect Designs", Url = "/projectmanager/designs" },
+        new NavItem { Icon = "fas fa-map-marked-alt", Label = "Project Maps", Url = "/projectmanager/map" },
+        new NavItem { Icon = "fas fa-file-alt", Label = "Reports", Url = "/projectmanager/reports" },
+        new NavItem { Icon = "fas fa-archive", Label = "Archived", Url = "/projectmanager/archived" }
+    };
+
+    private List<NavItem> GetAdminNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/admin" },
+        new NavItem { Icon = "fas fa-globe", Label = "All Modules", Children = GetAllowedModuleNavs() },
+        new NavItem { Icon = "fas fa-users", Label = "User Management", Url = "/admin/users" },
+        new NavItem { Icon = "fas fa-file-alt", Label = "Reports", Url = "/admin/reports",
+            Children = new()
+            {
+                new NavItem { Icon = "fas fa-tasks", Label = "Project Manager", Url = "/projectmanager/reports" },
+                new NavItem { Icon = "fas fa-hard-hat", Label = "Site Engineer", Url = "/siteengineer/reports" },
+                new NavItem { Icon = "fas fa-calculator", Label = "Quantity Surveyor", Url = "/quantitysurveyor/reports" },
+                new NavItem { Icon = "fas fa-file-invoice-dollar", Label = "Finance Officer", Url = "/financeofficer/reports" },
+            }
+        },
+        new NavItem { Icon = "fas fa-clipboard-list", Label = "Audit Logs", Url = "/admin/auditlogs" },
+        new NavItem { Icon = "fas fa-archive", Label = "Archived", Url = "/admin/archived-users" }
+    };
+
+    private List<NavItem> GetAllowedModuleNavs()
+    {
+        var allowedRoles = Sub.GetCurrentPlan().AllowedRoles;
+        var result = new List<NavItem>();
+
+        var pmNav = GetProjectManagerNav().Where(n => n.Label != "Dashboard" && n.Label != "Reports" && n.Label != "Archived")
+            .Select(n => new NavItem { Icon = n.Icon, Label = n.Label, Url = n.Url }).ToList();
+        var seNav = GetSiteEngineerNav().Where(n => n.Label != "Dashboard" && n.Label != "Reports" && n.Label != "Archived")
+            .Select(n => new NavItem { Icon = n.Icon, Label = n.Label, Url = n.Url }).ToList();
+        var archNav = GetArchitectNav().Where(n => n.Label != "Dashboard" && n.Label != "Archived")
+            .Select(n => new NavItem { Icon = n.Icon, Label = n.Label, Url = n.Url }).ToList();
+        var qsNav = GetQSNav().Where(n => n.Label != "Dashboard" && n.Label != "Reports" && n.Label != "Archived")
+            .Select(n => new NavItem { Icon = n.Icon, Label = n.Label, Url = n.Url }).ToList();
+        var foNav = GetFinanceNav().Where(n => n.Label != "Dashboard" && n.Label != "Reports" && n.Label != "Archived")
+            .Select(n => new NavItem { Icon = n.Icon, Label = n.Label, Url = n.Url }).ToList();
+
+        if (allowedRoles.Contains("ProjectManager") || allowedRoles.Contains("*"))
+            result.Add(new NavItem { Icon = "fas fa-tasks", Label = "Project Manager", Children = pmNav });
+        if (allowedRoles.Contains("SiteEngineer") || allowedRoles.Contains("*"))
+            result.Add(new NavItem { Icon = "fas fa-hard-hat", Label = "Site Engineer", Children = seNav });
+        if (allowedRoles.Contains("Architect") || allowedRoles.Contains("*"))
+            result.Add(new NavItem { Icon = "fas fa-drafting-compass", Label = "Architect", Children = archNav });
+        if (allowedRoles.Contains("QuantitySurveyor") || allowedRoles.Contains("*"))
+            result.Add(new NavItem { Icon = "fas fa-calculator", Label = "Quantity Surveyor", Children = qsNav });
+        if (allowedRoles.Contains("FinanceOfficer") || allowedRoles.Contains("*"))
+            result.Add(new NavItem { Icon = "fas fa-file-invoice-dollar", Label = "Finance Officer", Children = foNav });
+
+        return result;
+    }
+
+    private List<NavItem> GetArchitectNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/architect" },
+        new NavItem { Icon = "fas fa-drafting-compass", Label = "Design Management", Url = "/architect/designs" },
+        new NavItem { Icon = "fas fa-pencil-ruler", Label = "Revisions & Changes", Url = "/architect/revisions" },
+        new NavItem { Icon = "fas fa-tasks", Label = "My Tasks", Url = "/architect/tasks" },
+        new NavItem { Icon = "fas fa-archive", Label = "Archived", Url = "/architect/archived" }
+    };
+
+    private List<NavItem> GetSiteEngineerNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/siteengineer" },
+        new NavItem { Icon = "fas fa-tasks", Label = "My Tasks", Url = "/siteengineer/tasks" },
+        new NavItem { Icon = "fas fa-camera", Label = "Daily Progress", Url = "/siteengineer/progress" },
+        new NavItem { Icon = "fas fa-boxes", Label = "Resource Allocation", Url = "/siteengineer/resources" },
+        new NavItem { Icon = "fas fa-exclamation-triangle", Label = "Issues & Risk", Url = "/siteengineer/issues" },
+        new NavItem { Icon = "fas fa-file-alt", Label = "Reports", Url = "/siteengineer/reports" },
+        new NavItem { Icon = "fas fa-archive", Label = "Archived", Url = "/siteengineer/archived" }
+    };
+
+    private List<NavItem> GetQSNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/quantitysurveyor" },
+        new NavItem { Icon = "fas fa-calculator", Label = "Cost Estimates", Url = "/quantitysurveyor/costestimates" },
+        new NavItem { Icon = "fas fa-check-circle", Label = "Approved Resources", Url = "/quantitysurveyor/resources" },
+        new NavItem { Icon = "fas fa-tasks", Label = "My Tasks", Url = "/quantitysurveyor/tasks" },
+        new NavItem { Icon = "fas fa-wallet", Label = "Project Budget", Url = "/quantitysurveyor/budget" },
+        new NavItem { Icon = "fas fa-file-invoice-dollar", Label = "Reports", Url = "/quantitysurveyor/reports" },
+        new NavItem { Icon = "fas fa-archive", Label = "Archived", Url = "/quantitysurveyor/archived" }
+    };
+
+    private List<NavItem> GetFinanceNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/financeofficer" },
+        new NavItem { Icon = "fas fa-arrow-up", Label = "Expenses", Url = "/financeofficer/expenses" },
+        new NavItem { Icon = "fas fa-arrow-down", Label = "Income", Url = "/financeofficer/income" },
+        new NavItem { Icon = "fas fa-tasks", Label = "My Tasks", Url = "/financeofficer/tasks" },
+        new NavItem { Icon = "fas fa-file-invoice-dollar", Label = "Cost Estimates", Url = "/financeofficer/costestimates" },
+        new NavItem { Icon = "fas fa-wallet", Label = "Project Budget", Url = "/financeofficer/projectbudget" },
+        new NavItem { Icon = "fas fa-exchange-alt", Label = "Transactions", Url = "/financeofficer/transactions" },
+        new NavItem { Icon = "fas fa-chart-line", Label = "Cash Flow", Url = "/financeofficer/cashflow" },
+        new NavItem { Icon = "fas fa-file-invoice", Label = "Reports", Url = "/financeofficer/reports" },
+        new NavItem { Icon = "fas fa-archive", Label = "Archived", Url = "/financeofficer/archived" }
+    };
+
+    private List<NavItem> GetSuperAdminNav() => new()
+    {
+        new NavItem { Icon = "fas fa-tachometer-alt", Label = "Dashboard", Url = "/superadmin" },
+        new NavItem { Icon = "fas fa-cogs", Label = "System Settings", Url = "/superadmin/settings" },
+        new NavItem { Icon = "fas fa-user-shield", Label = "Manage Users", Url = "/superadmin/manage-users" },
+        new NavItem { Icon = "fas fa-chart-bar", Label = "Reports", Url = "/superadmin/reports",
+            Children = new()
+            {
+                new NavItem { Icon = "fas fa-tasks", Label = "Project Manager", Url = "/projectmanager/reports" },
+                new NavItem { Icon = "fas fa-hard-hat", Label = "Site Engineer", Url = "/siteengineer/reports" },
+                new NavItem { Icon = "fas fa-calculator", Label = "Quantity Surveyor", Url = "/quantitysurveyor/reports" },
+                new NavItem { Icon = "fas fa-file-invoice-dollar", Label = "Finance Officer", Url = "/financeofficer/reports" },
+            }
+        },
+        new NavItem { Icon = "fas fa-clipboard-list", Label = "Audit Logs", Url = "/superadmin/auditlogs" },
+        new NavItem { Icon = "fas fa-tools", Label = "Maintenance", Url = "/superadmin/maintenance" },
+        new NavItem { Icon = "fas fa-database", Label = "Backup & Restore", Url = "/superadmin/backup" }
+    };
+
+    private List<NavItem> FilterNavItemsBySubscription(List<NavItem> items)
+    {
+        var filtered = new List<NavItem>();
+        foreach (var item in items)
+        {
+            if (item.Children != null && item.Children.Count > 0)
+            {
+                var filteredChildren = FilterNavItemsBySubscription(item.Children);
+                if (filteredChildren.Count > 0)
+                    filtered.Add(new NavItem { Icon = item.Icon, Label = item.Label, Url = item.Url, Children = filteredChildren });
+            }
+            else if (string.IsNullOrEmpty(item.Url))
+            {
+                filtered.Add(item);
+            }
+            else
+            {
+                var relativePath = item.Url.TrimStart('/').ToLowerInvariant();
+                if (PlanCoreMAUI.Services.SubscriptionService.CheckRouteAccess(relativePath))
+                    filtered.Add(item);
+            }
+        }
+        return filtered;
+    }
+}

@@ -1,0 +1,452 @@
+@model PlanCore.Web.ViewModels.FOIncomeViewModel
+@using PlanCore.Web.ViewModels
+@{
+    var filterQuery = $"category={Uri.EscapeDataString(Model.SelectedCategory)}&dateRange={Uri.EscapeDataString(Model.SelectedDateRange)}&search={Uri.EscapeDataString(Model.Search ?? "")}&start={(Model.CustomStart?.ToString("yyyy-MM-dd") ?? "")}&end={(Model.CustomEnd?.ToString("yyyy-MM-dd") ?? "")}";
+    var baseLink = $"/financeofficer/income?{filterQuery}";
+    var items = Model.Items;
+    var categoryOptions = new[] { "Client Payment", "Retainer", "Design Fee", "Consultation", "Reimbursement", "Other" };
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-arrow-down"></i> Income Management</h2>
+        <p class="page-subtitle">Record and track all project income and payments</p>
+    </div>
+
+    <div class="cards-row">
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-hand-holding-usd" style="color:#16a34a;"></i></div>
+                <p class="stat-label">TOTAL INCOME</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@(Model.TotalAmount.ToString("N2"))</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-list-ol" style="color:#2563eb;"></i></div>
+                <p class="stat-label">TOTAL RECORDS</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@Model.TotalRecords</h2></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-left">
+                <div class="stat-icon"><i class="fas fa-calendar-check" style="color:#16a34a;"></i></div>
+                <p class="stat-label">THIS MONTH</p>
+            </div>
+            <div class="stat-right"><h2 class="stat-value">@Model.ThisMonthCount</h2></div>
+        </div>
+    </div>
+
+    <form method="get" action="/financeofficer/income" class="filter-bar">
+        <div class="filter-left">
+            <select name="category" class="filter-select" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                @foreach (var cat in categoryOptions)
+                {
+                    <option value="@cat" selected="@(Model.SelectedCategory == cat ? "selected" : null)">@cat</option>
+                }
+            </select>
+            <div class="date-filter-wrapper">
+                <i class="fas fa-calendar-alt"></i>
+                <select name="dateRange" class="filter-select date-filter-select" onchange="this.form.submit()">
+                    <option value="all" selected="@(Model.SelectedDateRange == "all" ? "selected" : null)">All</option>
+                    <option value="today" selected="@(Model.SelectedDateRange == "today" ? "selected" : null)">Today</option>
+                    <option value="thisweek" selected="@(Model.SelectedDateRange == "thisweek" ? "selected" : null)">This Week</option>
+                    <option value="thismonth" selected="@(Model.SelectedDateRange == "thismonth" ? "selected" : null)">This Month</option>
+                    <option value="thisyear" selected="@(Model.SelectedDateRange == "thisyear" ? "selected" : null)">This Year</option>
+                    <option value="customrange" selected="@(Model.SelectedDateRange == "customrange" ? "selected" : null)">Custom Range</option>
+                </select>
+            </div>
+            @if (Model.SelectedDateRange == "customrange")
+            {
+                <div class="date-range-inputs">
+                    <input type="date" name="start" class="filter-select date-range-picker" value="@(Model.CustomStart?.ToString("yyyy-MM-dd"))" onchange="this.form.submit()" />
+                    <span style="color:#64748b;font-weight:600;">to</span>
+                    <input type="date" name="end" class="filter-select date-range-picker" value="@(Model.CustomEnd?.ToString("yyyy-MM-dd"))" onchange="this.form.submit()" />
+                </div>
+            }
+            <a class="btn-clear" href="/financeofficer/income"><i class="fas fa-filter" style="margin-right:6px;"></i>Clear Filter</a>
+        </div>
+        <div class="filter-right">
+            <input type="text" name="search" placeholder="Search..." class="search-input" value="@Model.Search" onchange="this.form.submit()" />
+            <a class="btn-new" href="@(baseLink)&modal=new"><i class="fas fa-plus"></i> Add Income</a>
+        </div>
+    </form>
+
+    <div class="table-section">
+        <div class="table-header">
+            <span><i class="fas fa-list"></i> Income Records</span>
+            <span class="item-count">@items.Count items</span>
+        </div>
+        <div class="table-scroll">
+            <table class="project-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>PROJECT</th>
+                        <th>CATEGORY</th>
+                        <th style="text-align:right;">AMOUNT</th>
+                        <th>DATE</th>
+                        <th>ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var i in items)
+                    {
+                        <tr>
+                            <td><span class="id-cell">INC-@(i.Id.ToString("D3"))</span></td>
+                            <td class="td-left">@i.Project</td>
+                            <td><span class="category-text">@i.Category</span></td>
+                            <td style="text-align:right;font-weight:700;color:#16a34a;">@(i.Amount.ToString("N2"))</td>
+                            <td>@(i.TransactionDate.ToString("MMM d, yyyy h:mm tt"))</td>
+                            <td>
+                                <a class="icon-btn" title="View" href="@(baseLink)&modal=view&view=@i.Id"><i class="fas fa-eye"></i></a>
+                                @if (i.Status != "Received")
+                                {
+                                    <a class="icon-btn" title="Edit" href="@(baseLink)&modal=edit&id=@i.Id"><i class="fas fa-edit"></i></a>
+                                }
+                                <a class="icon-btn" title="Archive" href="@(baseLink)&modal=archive&id=@i.Id"><i class="fas fa-archive"></i></a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!items.Any())
+                    {
+                        <tr>
+                            <td colspan="6" style="text-align:center;color:#94a3b8;padding:40px;">
+                                No income records found. Click "Add Income" to create one.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.Modal == "new")
+{
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#f0fdf4;">
+                <h3><i class="fas fa-plus-circle" style="color:#16a34a;"></i> Add Income</h3>
+                <a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a>
+            </div>
+            <form id="addIncomeForm" method="post" action="/FinanceOfficer/CreateIncome">
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(Model.FormError))
+                    {
+                        <div class="form-error">@Model.FormError</div>
+                    }
+                    <div class="form-group">
+                        <label for="ni-project">Project *</label>
+                        <input id="ni-project" type="text" name="project" class="form-input" placeholder="Enter project name" value="@Model.FormProject" />
+                    </div>
+                    <div class="form-group">
+                        <label for="ni-location">Location</label>
+                        <input id="ni-location" type="text" name="location" class="form-input" placeholder="Enter location" value="@Model.FormLocation" />
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <div class="checkbox-group">
+                            @foreach (var cat in categoryOptions)
+                            {
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="cats" value="@cat" checked="@(Model.FormCategories.Contains(cat) ? "checked" : null)" />
+                                    <span>@cat</span>
+                                </label>
+                            }
+                        </div>
+                        @{
+                            var otherSelected = Model.FormCategories.Contains("Other");
+                            var customCat = Model.FormCategories.FirstOrDefault(c => c != "Other" && !categoryOptions.Contains(c));
+                            var otherVisible = otherSelected || customCat != null;
+                        }
+                        <input type="text" name="other" class="form-input other-specify" style="margin-top:8px;@(otherVisible ? "" : "display:none;")" placeholder="Specify other category" value="@(otherSelected ? Model.FormOther : (customCat ?? Model.FormOther))" />
+                    </div>
+                    <div class="form-group">
+                        <label for="ni-description">Description *</label>
+                        <input id="ni-description" type="text" name="desc" class="form-input" placeholder="Enter description" value="@Model.FormDescription" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ni-amount">Amount *</label>
+                            <input id="ni-amount" type="text" name="amount" inputmode="decimal" class="form-input" placeholder="0.00" value="@Model.FormAmount" />
+                        </div>
+                        <div class="form-group">
+                            <label for="ni-date">Date Received *</label>
+                            <input id="ni-date" type="datetime-local" name="date" class="form-input" value="@(Model.FormDate?.ToString("yyyy-MM-ddTHH:mm"))" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ni-payment">Payment Method</label>
+                            <select id="ni-payment" name="payment" class="form-input">
+                                <option value="">Select Payment Method</option>
+                                <option value="Bank Transfer" selected="@(Model.FormPayment == "Bank Transfer" ? "selected" : null)">Bank Transfer</option>
+                                <option value="Check" selected="@(Model.FormPayment == "Check" ? "selected" : null)">Check</option>
+                                <option value="Cash" selected="@(Model.FormPayment == "Cash" ? "selected" : null)">Cash</option>
+                                <option value="Online Payment" selected="@(Model.FormPayment == "Online Payment" ? "selected" : null)">Online Payment</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ni-ref">Reference No.</label>
+                            <input id="ni-ref" type="text" name="refno" class="form-input" placeholder="e.g. check or invoice #" value="@Model.FormReference" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="ni-notes">Notes</label>
+                        <textarea id="ni-notes" name="notes" class="form-input" rows="2" placeholder="Enter notes">@Model.FormNotes</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background:#f0fdf4;">
+                    <a class="btn-cancel" href="@baseLink">Cancel</a>
+                    <button type="submit" class="btn-create" style="background:#16a34a;"><i class="fas fa-save"></i> Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (Model.Modal == "view" && Model.ViewItem != null)
+{
+    var i = Model.ViewItem;
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#f0fdf4;">
+                <h3><i class="fas fa-folder-open" style="color:#16a34a;"></i> Income Details</h3>
+                <a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row"><span class="detail-label">Income ID</span><span class="detail-value">INC-@(i.Id.ToString("D3"))</span></div>
+                <div class="detail-row"><span class="detail-label">Project</span><span class="detail-value">@i.Project</span></div>
+                <div class="detail-row"><span class="detail-label">Location</span><span class="detail-value">@(string.IsNullOrWhiteSpace(i.Location) ? "-" : i.Location)</span></div>
+                <div class="detail-row"><span class="detail-label">Category</span><span class="detail-value" style="font-weight:600;color:#16a34a;">@i.Category</span></div>
+                <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">@(i.Description ?? "-")</span></div>
+                <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value" style="font-weight:700;color:#16a34a;">@(i.Amount.ToString("N2"))</span></div>
+                <div class="detail-row"><span class="detail-label">Date Received</span><span class="detail-value">@(i.TransactionDate.ToString("MMM dd, yyyy h:mm tt"))</span></div>
+                <div class="detail-row"><span class="detail-label">Payment Method</span><span class="detail-value">@(i.PaymentMethod ?? "-")</span></div>
+                <div class="detail-row"><span class="detail-label">Reference No.</span><span class="detail-value">@(i.ReferenceNumber ?? "-")</span></div>
+                <div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value">@(i.Notes ?? "-")</span></div>
+                <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value">@(i.CreatedAt.ToString("MMM dd, yyyy h:mm tt"))</span></div>
+            </div>
+            <div class="modal-footer" style="background:#f0fdf4;">
+                <a class="btn-cancel" href="@baseLink">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.Modal == "edit")
+{
+    <div class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#f0fdf4;">
+                <h3><i class="fas fa-edit" style="color:#16a34a;"></i> Edit Income</h3>
+                <a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a>
+            </div>
+            <form id="editIncomeForm" method="post" action="/FinanceOfficer/UpdateIncome">
+                <input type="hidden" name="id" value="@Model.FormEditId" />
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(Model.FormError))
+                    {
+                        <div class="form-error">@Model.FormError</div>
+                    }
+                    <div class="form-group">
+                        <label for="ei-project">Project *</label>
+                        <input id="ei-project" type="text" name="project" class="form-input" value="@Model.FormProject" />
+                    </div>
+                    <div class="form-group">
+                        <label for="ei-location">Location</label>
+                        <input id="ei-location" type="text" name="location" class="form-input" placeholder="Enter location" value="@Model.FormLocation" />
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <div class="checkbox-group">
+                            @foreach (var cat in categoryOptions)
+                            {
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="cats" value="@cat" checked="@(Model.FormCategories.Contains(cat) ? "checked" : null)" />
+                                    <span>@cat</span>
+                                </label>
+                            }
+                        </div>
+                        @{
+                            var otherSelected = Model.FormCategories.Contains("Other");
+                            var customCat = Model.FormCategories.FirstOrDefault(c => c != "Other" && !categoryOptions.Contains(c));
+                            var otherVisible = otherSelected || customCat != null;
+                        }
+                        <input type="text" name="other" class="form-input other-specify" style="margin-top:8px;@(otherVisible ? "" : "display:none;")" placeholder="Specify other category" value="@(otherSelected ? Model.FormOther : (customCat ?? Model.FormOther))" />
+                    </div>
+                    <div class="form-group">
+                        <label for="ei-description">Description *</label>
+                        <input id="ei-description" type="text" name="desc" class="form-input" value="@Model.FormDescription" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ei-amount">Amount *</label>
+                            <input id="ei-amount" type="text" name="amount" inputmode="decimal" class="form-input" placeholder="0.00" value="@Model.FormAmount" />
+                        </div>
+                        <div class="form-group">
+                            <label for="ei-date">Date Received *</label>
+                            <input id="ei-date" type="datetime-local" name="date" class="form-input" value="@(Model.FormDate?.ToString("yyyy-MM-ddTHH:mm"))" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ei-payment">Payment Method</label>
+                            <select id="ei-payment" name="payment" class="form-input">
+                                <option value="">Select Payment Method</option>
+                                <option value="Bank Transfer" selected="@(Model.FormPayment == "Bank Transfer" ? "selected" : null)">Bank Transfer</option>
+                                <option value="Check" selected="@(Model.FormPayment == "Check" ? "selected" : null)">Check</option>
+                                <option value="Cash" selected="@(Model.FormPayment == "Cash" ? "selected" : null)">Cash</option>
+                                <option value="Online Payment" selected="@(Model.FormPayment == "Online Payment" ? "selected" : null)">Online Payment</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ei-ref">Reference No.</label>
+                            <input id="ei-ref" type="text" name="refno" class="form-input" placeholder="e.g. check or invoice #" value="@Model.FormReference" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="ei-notes">Notes</label>
+                        <textarea id="ei-notes" name="notes" class="form-input" rows="2">@Model.FormNotes</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background:#f0fdf4;">
+                    <a class="btn-cancel" href="@baseLink">Cancel</a>
+                    <button type="submit" class="btn-create" style="background:#16a34a;"><i class="fas fa-save"></i> Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (Model.Modal == "archive" && Model.ActionTargetId > 0)
+{
+    <div class="modal-overlay">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header" style="background:#fef3c7;">
+                <h3><i class="fas fa-archive" style="color:#f59e0b;"></i> Confirm Archive</h3>
+                <a class="modal-close" href="@baseLink"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:32px 24px;">
+                <i class="fas fa-exclamation-triangle" style="font-size:40px;color:#f59e0b;margin-bottom:16px;"></i>
+                <p style="font-size:15px;color:#475569;margin:0;">Are you sure you want to archive this income record?<br/>It will be moved to the Archived section.</p>
+            </div>
+            <div class="modal-footer" style="background:#fef3c7;">
+                <a class="btn-cancel" href="@baseLink">Cancel</a>
+                <form method="post" action="/FinanceOfficer/ArchiveIncome" style="margin:0;">
+                    <input type="hidden" name="id" value="@Model.ActionTargetId" />
+                    <button type="submit" class="btn-create" style="background:#f59e0b;">Archive</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; padding:24px; }
+    .page-header { margin-bottom:24px; flex-shrink:0; }
+    .page-title { margin:0 0 6px; font-size:26px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#16a34a; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+
+    .cards-row { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:24px; flex-shrink:0; }
+    .stat-card { background:#ffffff; border-radius:12px; padding:24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; }
+    .stat-left { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+    .stat-right { display:flex; flex-direction:column; align-items:flex-end; }
+    .stat-label { margin:0; font-size:13px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+    .stat-value { margin:0; font-size:32px; font-weight:700; color:#0f172a; }
+    .stat-icon { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:4px; }
+
+    .filter-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-shrink:0; flex-wrap:wrap; gap:12px; }
+    .filter-left { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .filter-right { display:flex; align-items:center; gap:12px; }
+    .filter-select { height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; color:#475569; background:#fff; min-width:130px; cursor:pointer; font-weight:500; }
+    .filter-select:focus { outline:none; border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,0.1); }
+    .btn-clear { height:40px; padding:0 18px; border:1.5px solid #86efac; border-radius:8px; background:#fff; color:#16a34a; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; text-decoration:none; box-sizing:border-box; }
+    .btn-clear:hover { background:#f0fdf4; border-color:#22c55e; }
+    .btn-new { height:40px; padding:0 20px; border:none; border-radius:8px; background:#16a34a; color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; text-decoration:none; }
+    .btn-new:hover { background:#15803d; box-shadow:0 4px 6px -1px rgba(22,163,74,0.3); }
+    .btn-new i { margin-right:8px; }
+    .search-input { width:240px; height:40px; padding:0 16px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; box-sizing:border-box; }
+    .search-input:focus { outline:none; border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,0.1); }
+
+    .date-filter-wrapper { position:relative; display:inline-flex; }
+    .date-filter-wrapper i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#64748b; font-size:14px; pointer-events:none; z-index:1; }
+    .date-filter-select { padding-left:36px !important; }
+    .date-range-inputs { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .date-range-picker { min-width:140px; }
+
+    .table-section { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.1); border:1px solid #e2e8f0; overflow:hidden; flex:1 1 0; display:flex; flex-direction:column; min-height:0; }
+    .table-header { padding:18px 24px; border-bottom:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:space-between; align-items:center; }
+    .table-header span { font-weight:600; color:#334155; font-size:16px; }
+    .table-header span i { margin-right:10px; color:#16a34a; }
+    .table-header .item-count { font-size:13px; color:#64748b; background:#dcfce7; padding:8px 14px; border-radius:20px; white-space:nowrap; font-weight:500; }
+    .table-scroll { flex:1 1 0; overflow-y:auto; overflow-x:auto; }
+    .project-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    .project-table th { background:#f0fdf4; padding:14px 16px; text-align:center; font-size:11px; font-weight:600; color:#475569; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+    .project-table td { padding:14px 16px; font-size:13px; color:#475569; border-bottom:1px solid #f1f5f9; white-space:nowrap; text-align:center; }
+    .project-table tbody tr:nth-child(even) { background:#f8fafc; }
+    .project-table tbody tr:nth-child(odd) { background:#ffffff; }
+    .project-table tbody tr:hover { background:#e2e8f0; }
+    .project-table .td-left { text-align:left; }
+
+    .id-cell { color:#16a34a; font-weight:600; }
+    .category-text { font-weight:600; color:#16a34a; }
+    .badge-text { font-size:11px; font-weight:600; }
+    .badge-green { color:#16a34a; }
+    .badge-yellow { color:#d97706; }
+
+    .icon-btn { background:none; border:none; cursor:pointer; padding:8px; color:#94a3b8; font-size:15px; transition:color 0.15s; text-decoration:none; display:inline-block; }
+    .icon-btn:hover { color:#16a34a; }
+
+    .checkbox-group { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:4px; }
+    .checkbox-label { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; color:#334155; cursor:pointer; padding:6px 12px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; transition:all 0.15s; user-select:none; }
+    .checkbox-label input[type="checkbox"] { accent-color:#16a34a; width:16px; height:16px; margin:0; }
+    .checkbox-label:has(input:checked) { border-color:#16a34a; background:#f0fdf4; color:#16a34a; font-weight:600; }
+
+    .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:1000; }
+    .modal-content { background:#fff; border-radius:16px; width:100%; max-width:560px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+    .confirm-modal { max-width:420px; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px; border-bottom:1px solid #e2e8f0; background:#f0fdf4; border-radius:16px 16px 0 0; }
+    .modal-header h3 { margin:0; font-size:18px; font-weight:600; color:#0f172a; display:flex; align-items:center; gap:10px; }
+    .modal-header h3 i { color:#16a34a; }
+    .modal-close { background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer; padding:4px 8px; border-radius:6px; text-decoration:none; }
+    .modal-close:hover { background:#dcfce7; color:#16a34a; }
+    .modal-body { padding:24px; }
+    .modal-footer { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:20px 24px; border-top:1px solid #e2e8f0; background:#f0fdf4; border-radius:0 0 16px 16px; }
+    .detail-row { display:flex; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { width:140px; flex-shrink:0; font-weight:600; color:#64748b; font-size:13px; }
+    .detail-value { color:#1e293b; font-size:14px; }
+
+    .form-group { margin-bottom:18px; }
+    .form-group label { display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:8px; }
+    .form-error { margin-bottom:12px; padding:10px 12px; border-radius:8px; border:1px solid #bbf7d0; background:#f0fdf4; color:#16a34a; font-size:13px; }
+    .form-input { width:100%; height:42px; padding:0 14px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:14px; color:#1e293b; background:#fff; font-family:'Poppins',sans-serif; box-sizing:border-box; }
+    .form-input:focus { outline:none; border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,0.1); }
+    .form-input textarea { height:auto; padding:12px 14px; resize:vertical; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .btn-cancel { height:42px; padding:0 24px; border:1.5px solid #cbd5e1; border-radius:8px; background:#fff; color:#475569; font-size:14px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; display:inline-flex; align-items:center; text-decoration:none; box-sizing:border-box; }
+    .btn-cancel:hover { background:#f1f5f9; border-color:#94a3b8; }
+    .btn-create { height:42px; padding:0 24px; border:none; border-radius:8px; background:#16a34a; color:#fff; font-size:14px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; display:flex; align-items:center; gap:8px; }
+    .btn-create:hover { background:#15803d; }
+
+    @@media (max-width:1024px) { .cards-row { grid-template-columns:repeat(2,1fr); } .search-input { width:180px; } }
+    @@media (max-width:768px) { .cards-row { grid-template-columns:1fr; } .filter-bar { flex-direction:column; align-items:stretch; } .filter-left,.filter-right { width:100%; justify-content:flex-start; } .search-input { width:100%; } .item-count { display:none; } }
+</style>
+
+<script>
+    (function () {
+        ['addIncomeForm', 'editIncomeForm'].forEach(function (formId) {
+            var form = document.getElementById(formId);
+            if (!form) return;
+            var otherCb = form.querySelector('input[name="cats"][value="Other"]');
+            var otherInput = form.querySelector('input.other-specify');
+            if (!otherCb || !otherInput) return;
+            otherCb.addEventListener('change', function () {
+                otherInput.style.display = otherCb.checked ? '' : 'none';
+            });
+        });
+    })();
+</script>

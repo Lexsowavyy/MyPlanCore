@@ -1,0 +1,130 @@
+<style>
+    .page-header {
+        margin-bottom: 28px;
+    }
+    .page-header h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 6px;
+    }
+    .page-header p {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin: 0;
+    }
+    .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    .module-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    .module-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .module-card .icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 16px;
+    }
+    .module-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 8px;
+    }
+    .module-card p {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin: 0 0 14px;
+        line-height: 1.5;
+    }
+    .module-card .url {
+        font-size: 0.72rem;
+        color: #94a3b8;
+        background: #f8fafc;
+        padding: 6px 10px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+    .project-manager { background: #eff6ff; color: #2563eb; }
+    .architect { background: #f5f3ff; color: #8b5cf6; }
+    .site-engineer { background: #ecfeff; color: #06b6d4; }
+    .quantity-surveyor { background: #fffbeb; color: #f59e0b; }
+    .finance-officer { background: #ecfdf5; color: #10b981; }
+</style>
+
+<div class="page-header">
+    <h1>Access All Modules</h1>
+    <p>Navigate to any module in the system</p>
+</div>
+
+<div class="modules-grid">
+    <div class="module-card" onclick="location.href='/projectmanager'">
+        <div class="icon project-manager">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <h3>Project Manager</h3>
+        <p>Manage projects, planning, tasks, budgets, and resource allocation</p>
+        <span class="url">/projectmanager</span>
+    </div>
+
+    <div class="module-card" onclick="location.href='/architect'">
+        <div class="icon architect">
+            <i class="fas fa-drafting-compass"></i>
+        </div>
+        <h3>Architect</h3>
+        <p>Design management, revisions, and architectural tasks</p>
+        <span class="url">/architect</span>
+    </div>
+
+    <div class="module-card" onclick="location.href='/siteengineer'">
+        <div class="icon site-engineer">
+            <i class="fas fa-hard-hat"></i>
+        </div>
+        <h3>Site Engineer</h3>
+        <p>Site operations, daily progress, resources, and issue tracking</p>
+        <span class="url">/siteengineer</span>
+    </div>
+
+    <div class="module-card" onclick="location.href='/quantitysurveyor'">
+        <div class="icon quantity-surveyor">
+            <i class="fas fa-calculator"></i>
+        </div>
+        <h3>Quantity Surveyor</h3>
+        <p>Cost estimates, resources, budgets, and QS reports</p>
+        <span class="url">/quantitysurveyor</span>
+    </div>
+
+    <div class="module-card" onclick="location.href='/financeofficer'">
+        <div class="icon finance-officer">
+            <i class="fas fa-wallet"></i>
+        </div>
+        <h3>Finance Officer</h3>
+        <p>Expenses, income, transactions, cash flow, and financial reports</p>
+        <span class="url">/financeofficer</span>
+    </div>
+
+    <div class="module-card" onclick="location.href='/admin'">
+        <div class="icon" style="background: #fef2f2; color: #dc2626;">
+            <i class="fas fa-user-shield"></i>
+        </div>
+        <h3>Admin Dashboard</h3>
+        <p>Return to Admin dashboard for user management and reports</p>
+        <span class="url">/admin</span>
+    </div>
+</div>

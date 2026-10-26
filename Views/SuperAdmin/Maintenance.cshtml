@@ -1,0 +1,107 @@
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-tools"></i> System Maintenance</h2>
+        <p class="page-subtitle">Run maintenance tasks to keep the system optimized.</p>
+    </div>
+
+    <div class="status-banner" id="maintBanner" style="display:none;">
+        <i class="fas fa-sync-alt fa-spin"></i>
+        <span id="maintBannerText">Running maintenance task...</span>
+    </div>
+
+    <div class="tasks-grid">
+        <div class="task-card">
+            <div class="task-icon" style="background:#dbeafe;">
+                <i class="fas fa-search" style="color:#2563eb;"></i>
+            </div>
+            <h4>Rebuild Search Index</h4>
+            <p class="page-subtitle">Reindex all records for faster search results.</p>
+            <button class="btn-maintenance" onclick="runMaintTask(this, 2000, 'Search index rebuilt successfully.')">
+                <i class="fas fa-play"></i> Run Task
+            </button>
+        </div>
+        <div class="task-card">
+            <div class="task-icon" style="background:#fef3c7;">
+                <i class="fas fa-database" style="color:#f59e0b;"></i>
+            </div>
+            <h4>Clear Log Cache</h4>
+            <p class="page-subtitle">Remove cached log entries to free up memory.</p>
+            <button class="btn-maintenance" onclick="runMaintTask(this, 1500, 'Log cache cleared successfully.')">
+                <i class="fas fa-play"></i> Run Task
+            </button>
+        </div>
+        <div class="task-card">
+            <div class="task-icon" style="background:#dcfce7;">
+                <i class="fas fa-database" style="color:#16a34a;"></i>
+            </div>
+            <h4>Optimize Database</h4>
+            <p class="page-subtitle">Compact and optimize the database tables.</p>
+            <button class="btn-maintenance" onclick="runMaintTask(this, 2500, 'Database optimized successfully.')">
+                <i class="fas fa-play"></i> Run Task
+            </button>
+        </div>
+        <div class="task-card">
+            <div class="task-icon" style="background:#f3e8ff;">
+                <i class="fas fa-broom" style="color:#8b5cf6;"></i>
+            </div>
+            <h4>Clean Temporary Files</h4>
+            <p class="page-subtitle">Remove temporary files and system garbage.</p>
+            <button class="btn-maintenance" onclick="runMaintTask(this, 1800, 'Temporary files cleaned successfully.')">
+                <i class="fas fa-play"></i> Run Task
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toastNotification" style="display:none;">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage"></span>
+</div>
+
+<script>
+    function runMaintTask(btn, delay, msg) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+        var banner = document.getElementById('maintBanner');
+        var bannerText = document.getElementById('maintBannerText');
+        banner.style.display = 'flex';
+        bannerText.textContent = 'Running: ' + btn.parentElement.querySelector('h4').textContent + '...';
+        setTimeout(function () {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Done';
+            btn.classList.add('btn-success');
+            banner.style.display = 'none';
+            var toast = document.getElementById('toastNotification');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.style.display = 'flex';
+            setTimeout(function () { btn.innerHTML = '<i class="fas fa-play"></i> Run Task'; btn.classList.remove('btn-success'); }, 2500);
+        }, delay);
+    }
+</script>
+
+<style>
+    .page-container { font-family:'Poppins',sans-serif; background:#f1f5f9; display:flex; flex-direction:column; flex:1; width:100%; min-height:0; box-sizing:border-box; }
+    .page-header { margin-bottom:20px; flex-shrink:0; }
+    .page-title { margin:0 0 4px 0; font-size:24px; font-weight:700; color:#0f172a; display:flex; align-items:center; }
+    .page-title i { margin-right:12px; color:#f59e0b; font-size:22px; }
+    .page-subtitle { margin:0; font-size:14px; color:#64748b; }
+
+    .status-banner { background:#fef3c7; border:1px solid #fcd34d; color:#b45309; padding:14px 18px; border-radius:10px; display:flex; align-items:center; gap:12px; margin-bottom:20px; font-weight:500; font-size:14px; flex-shrink:0; }
+
+    .tasks-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+    .task-card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #e2e8f0; padding:24px; display:flex; flex-direction:column; gap:12px; transition:all 0.2s; }
+    .task-card:hover { transform:translateY(-3px); box-shadow:0 6px 14px rgba(0,0,0,0.08); }
+    .task-card h4 { margin:0; font-size:15px; font-weight:600; color:#0f172a; }
+    .task-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+
+    .btn-maintenance { height:38px; padding:0 16px; border:none; border-radius:8px; background:#f59e0b; color:#fff; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; width:fit-content; }
+    .btn-maintenance:hover { background:#d97706; }
+    .btn-maintenance:disabled { background:#94a3b8; cursor:not-allowed; }
+    .btn-success-maint { background:#16a34a !important; }
+
+    .toast { position:fixed; top:20px; right:20px; padding:14px 20px; border-radius:10px; font-size:14px; font-weight:500; z-index:99999; background:#16a34a; color:#fff; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); animation:toastIn 0.3s ease; }
+
+    @@keyframes toastIn { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    @@media (max-width:1200px) { .tasks-grid { grid-template-columns:repeat(2,1fr); } }
+    @@media (max-width:640px) { .tasks-grid { grid-template-columns:1fr; } }
+</style>

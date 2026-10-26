@@ -1,0 +1,264 @@
+@using System.Text.Json
+@using PlanCoreMAUI.Models
+@model PlanCore.Web.ViewModels.ArchivedViewModel
+@{
+    var typeParam = Model.SelectedType;
+    var searchParam = Model.SearchQuery;
+}
+<div class="page-container">
+    <div class="page-header">
+        <h2 class="page-title"><i class="fas fa-archive"></i> All Archived</h2>
+        <p class="page-subtitle">View, restore, or permanently delete archived data</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div style="background:#fef2f2;color:#dc2626;padding:12px 16px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:16px;border:1px solid #fecaca;">@Model.Error</div>
+    }
+
+    <div class="filter-bar">
+        <div class="filter-left">
+            <a class="tab-btn @(typeParam == "all" ? "active" : "")" href="/SiteEngineer/Archived?type=all&search=@searchParam"><i class="fas fa-archive"></i> All</a>
+            <a class="tab-btn @(typeParam == "progress" ? "active" : "")" href="/SiteEngineer/Archived?type=progress&search=@searchParam"><i class="fas fa-chart-line"></i> Progress</a>
+            <a class="tab-btn @(typeParam == "resources" ? "active" : "")" href="/SiteEngineer/Archived?type=resources&search=@searchParam"><i class="fas fa-boxes"></i> Requests</a>
+            <a class="tab-btn @(typeParam == "issues" ? "active" : "")" href="/SiteEngineer/Archived?type=issues&search=@searchParam"><i class="fas fa-exclamation-triangle"></i> Issues</a>
+            <a class="tab-btn @(typeParam == "tasks" ? "active" : "")" href="/SiteEngineer/Archived?type=tasks&search=@searchParam"><i class="fas fa-tasks"></i> Tasks</a>
+        </div>
+        <div class="filter-right">
+            <form method="get" action="/SiteEngineer/Archived" style="display:flex;align-items:center;gap:12px;">
+                <input type="hidden" name="type" value="@typeParam" />
+                <input type="text" name="search" value="@searchParam" placeholder="Search archived..." class="search-input" />
+            </form>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <div class="table-header"><span><i class="fas fa-history"></i> Archived Items</span><span class="item-count">@Model.Items.Count items</span></div>
+        <div class="table-scroll">
+            <table class="project-table">
+                <thead><tr><th>TYPE</th><th>ID</th><th>PROJECT</th><th>DETAILS</th><th>STATUS</th><th>ARCHIVED</th><th>ACTIONS</th></tr></thead>
+                <tbody>
+                    @if (!Model.Items.Any())
+                    {
+                        <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:40px;"><i class="fas fa-archive" style="font-size:32px;opacity:0.25;display:block;margin-bottom:12px;"></i>No archived items found</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td><span class="badge-text badge-type">@item.Type</span></td>
+                                <td><span class="id-cell">@item.DisplayId</span></td>
+                                <td>@item.Project</td>
+                                <td>@item.Details</td>
+                                <td><span class="badge-text @item.StatusClass">@item.Status</span></td>
+                                <td>@item.ArchivedOnDisplay</td>
+                                <td>
+                                    <a class="icon-btn" title="View" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam&view=@(item.OriginalType)=@item.OriginalId"><i class="fas fa-eye"></i></a>
+                                    <a class="icon-btn" title="Restore" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam&restore=@item.OriginalId"><i class="fas fa-undo"></i></a>
+                                    <a class="icon-btn danger" title="Delete" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam&delete=@item.OriginalId"><i class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.ViewItem != null)
+{
+    var vp = Model.ViewItem;
+    <div class="modal-overlay">
+        <div class="modal-content view-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-eye"></i> @vp.Type - @vp.DisplayId</h3>
+                <a class="icon-btn" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam"><i class="fas fa-times"></i></a>
+            </div>
+            <div class="modal-body">
+                @if (vp.RefProgress != null)
+                {
+                    var p = vp.RefProgress;
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Progress ID</span><span class="detail-value">@p.ProgressId</span></div>
+                        <div class="detail-item"><span class="detail-label">Project</span><span class="detail-value">@p.Project</span></div>
+                        <div class="detail-item"><span class="detail-label">Location</span><span class="detail-value">@(p.Location ?? "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Progress</span><span class="detail-value">@p.ProgressPercent%</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">@p.Status</span></div>
+                        <div class="detail-item"><span class="detail-label">Updated</span><span class="detail-value">@(p.UpdateDate.ToString("MMM dd, yyyy h:mm tt"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Archived On</span><span class="detail-value">@(p.ArchivedOn?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Notes</span><span class="detail-value">@(p.Notes ?? "-")</span></div>
+                    </div>
+                }
+                @if (vp.RefResource != null)
+                {
+                    var r = vp.RefResource;
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Request ID</span><span class="detail-value">@r.RequestId</span></div>
+                        <div class="detail-item"><span class="detail-label">Project</span><span class="detail-value">@r.Project</span></div>
+                        <div class="detail-item"><span class="detail-label">Location</span><span class="detail-value">@(r.Location ?? "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Manpower</span><span class="detail-value">@r.Manpower</span></div>
+                        <div class="detail-item"><span class="detail-label">Materials</span><span class="detail-value">@(GetMaterials(r.MaterialsJson).Any() ? string.Join(", ", GetMaterials(r.MaterialsJson)) : "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Equipment</span><span class="detail-value">@(GetEquipment(r.EquipmentsJson).Any() ? string.Join(", ", GetEquipment(r.EquipmentsJson)) : "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">@r.Status</span></div>
+                        <div class="detail-item"><span class="detail-label">Needed By</span><span class="detail-value">@(r.NeededBy.ToString("MMM dd, yyyy h:mm tt"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Archived On</span><span class="detail-value">@(r.ArchivedOn?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Notes</span><span class="detail-value">@(r.Notes ?? "-")</span></div>
+                    </div>
+                }
+                @if (vp.RefIssue != null)
+                {
+                    var i = vp.RefIssue;
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Issue ID</span><span class="detail-value">@i.IssueId</span></div>
+                        <div class="detail-item"><span class="detail-label">Project</span><span class="detail-value">@i.Project</span></div>
+                        <div class="detail-item"><span class="detail-label">Type</span><span class="detail-value">@i.IssueType</span></div>
+                        <div class="detail-item"><span class="detail-label">Severity</span><span class="detail-value">@i.Severity</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">@i.Status</span></div>
+                        <div class="detail-item"><span class="detail-label">Date Reported</span><span class="detail-value">@(i.DateReported.ToString("MMM dd, yyyy h:mm tt"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Resolved Date</span><span class="detail-value">@(i.ResolvedDate?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Archived On</span><span class="detail-value">@(i.ArchivedOn?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Description</span><span class="detail-value">@(i.Description ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">PM Resolution</span><span class="detail-value">@(i.PMNotes ?? "-")</span></div>
+                    </div>
+                }
+                @if (vp.RefTask != null)
+                {
+                    var t = vp.RefTask;
+                    <div class="detail-grid">
+                        <div class="detail-item"><span class="detail-label">Task ID</span><span class="detail-value">TSK @(t.Id.ToString("D3"))</span></div>
+                        <div class="detail-item"><span class="detail-label">Task</span><span class="detail-value">@t.Name</span></div>
+                        <div class="detail-item"><span class="detail-label">Project</span><span class="detail-value">@t.Project</span></div>
+                        <div class="detail-item"><span class="detail-label">Assigned To</span><span class="detail-value">@(t.AssignedTo ?? "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Priority</span><span class="detail-value">@(t.Priority ?? "Normal")</span></div>
+                        <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">@t.Status</span></div>
+                        <div class="detail-item"><span class="detail-label">Start Date</span><span class="detail-value">@(t.StartDate?.ToString("MMM dd, yyyy") ?? "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Due Date</span><span class="detail-value">@(t.DueDate?.ToString("MMM dd, yyyy") ?? "-")</span></div>
+                        <div class="detail-item"><span class="detail-label">Archived On</span><span class="detail-value">@(t.ArchivedOn?.ToString("MMM dd, yyyy h:mm tt") ?? "-")</span></div>
+                        <div class="detail-item full-width"><span class="detail-label">Description</span><span class="detail-value">@(t.Description ?? "-")</span></div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <a class="btn-secondary" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam">Close</a>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.RestoreItem != null)
+{
+    var rp = Model.RestoreItem;
+    <div class="modal-overlay">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header"><h3><i class="fas fa-undo" style="color:#2563eb;"></i> Restore Item</h3></div>
+            <div class="modal-body" style="text-align:center;padding:32px;">
+                <i class="fas fa-archive" style="font-size:48px;color:#2563eb;opacity:0.5;margin-bottom:16px;display:block;"></i>
+                <p style="font-size:15px;color:#475569;margin:0 0 8px;">Are you sure you want to restore this item?</p>
+                <p style="font-size:13px;color:#94a3b8;margin:0;">It will be moved back to its active module.</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-secondary" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam">Cancel</a>
+                <form method="post" action="/SiteEngineer/Restore">
+                    <input type="hidden" name="id" value="@rp.OriginalId" />
+                    <input type="hidden" name="type" value="@rp.OriginalType" />
+                    <button type="submit" class="btn-confirm"><i class="fas fa-undo"></i> Restore</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (Model.DeleteItem != null)
+{
+    var dp = Model.DeleteItem;
+    <div class="modal-overlay">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header"><h3><i class="fas fa-trash" style="color:#dc2626;"></i> Delete Permanently</h3></div>
+            <div class="modal-body" style="text-align:center;padding:32px;">
+                <i class="fas fa-exclamation-triangle" style="font-size:48px;color:#dc2626;opacity:0.5;margin-bottom:16px;display:block;"></i>
+                <p style="font-size:15px;color:#475569;margin:0 0 8px;">This action cannot be undone.</p>
+                <p style="font-size:13px;color:#94a3b8;margin:0;">The data will be permanently removed from the system.</p>
+            </div>
+            <div class="modal-footer">
+                <a class="btn-secondary" href="/SiteEngineer/Archived?type=@typeParam&search=@searchParam">Cancel</a>
+                <form method="post" action="/SiteEngineer/Delete">
+                    <input type="hidden" name="id" value="@dp.OriginalId" />
+                    <input type="hidden" name="type" value="@dp.OriginalType" />
+                    <button type="submit" class="btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .page-container { font-family: 'Poppins', sans-serif; background: #f1f5f9; display: flex; flex-direction: column; flex: 1; width: 100%; min-height: 0; box-sizing: border-box; padding: 24px; }
+    .page-header { margin-bottom: 24px; flex-shrink: 0; }
+    .page-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; color: #0f172a; display: flex; align-items: center; }
+    .page-title i { margin-right: 12px; color: #8b5cf6; font-size: 22px; }
+    .page-subtitle { margin: 0; font-size: 14px; color: #64748b; }
+    .filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; flex-wrap: wrap; gap: 12px; }
+    .filter-left { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-right { display: flex; align-items: center; gap: 12px; }
+    .search-input { width: 240px; height: 40px; padding: 0 16px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+    .search-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .tab-btn { height: 40px; padding: 8px 20px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-weight: 600; font-size: 0.82rem; cursor: pointer; background: white; color: #64748b; transition: all 0.2s; display: flex; align-items: center; gap: 8px; text-decoration: none; box-sizing: border-box; }
+    .tab-btn.active { background: linear-gradient(135deg,#8b5cf6,#7c3aed); color: white; border-color: #8b5cf6; }
+    .tab-btn:hover:not(.active) { background: #f1f5f9; }
+    .table-section { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; overflow: hidden; flex: 1 1 0; display: flex; flex-direction: column; min-height: 0; }
+    .table-header { padding: 18px 24px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; }
+    .table-header span { font-weight: 600; color: #334155; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+    .table-header .item-count { font-size: 13px; color: #64748b; background: #e2e8f0; padding: 8px 14px; border-radius: 20px; white-space: nowrap; font-weight: 500; }
+    .table-scroll { flex: 1 1 0; overflow-y: auto; overflow-x: auto; }
+    .project-table { width: 100%; border-collapse: collapse; }
+    .project-table th { background: #f8fafc; padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    .project-table td { padding: 14px 16px; font-size: 13px; color: #475569; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+    .project-table tbody tr:nth-child(even) { background: #f8fafc; }
+    .project-table tbody tr:nth-child(odd) { background: #ffffff; }
+    .project-table tbody tr:hover { background: #e2e8f0; }
+    .id-cell { color: #8b5cf6; font-weight: 600; }
+    .icon-btn { background: none; border: none; cursor: pointer; padding: 8px; color: #94a3b8; font-size: 15px; transition: color 0.15s; text-decoration: none; }
+    .icon-btn:hover { color: #3b82f6; }
+    .icon-btn.danger:hover { color: #dc2626; }
+    .badge-text { font-size: 11px; font-weight: 600; }
+    .badge-type { display: inline-block; padding: 4px 12px; border-radius: 20px; background: #f1f5f9; color: #475569; font-weight: 600; font-size: 11px; }
+    .badge-blue { color: #2563eb; } .badge-green { color: #16a34a; } .badge-yellow { color: #d97706; } .badge-red { color: #dc2626; } .badge-orange { color: #ea580c; } .badge-teal { color: #0d9488; } .badge-purple { color: #7c3aed; }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 85vh; overflow-y: auto; }
+    .view-modal { width: 560px; max-width: 90vw; }
+    .confirm-modal { width: 420px; max-width: 90vw; }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { margin: 0; font-size: 18px; color: #0f172a; display: flex; align-items: center; gap: 10px; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; align-items: center; }
+    .btn-secondary { height: 40px; padding: 0 20px; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #fff; color: #475569; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; box-sizing: border-box; }
+    .btn-secondary:hover { background: #f8fafc; }
+    .btn-confirm { height: 40px; padding: 0 20px; border: none; border-radius: 8px; background: #2563eb; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; }
+    .btn-confirm:hover { background: #1d4ed8; }
+    .btn-danger { height: 40px; padding: 0 20px; border: none; border-radius: 8px; background: #dc2626; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: 'Poppins', sans-serif; }
+    .btn-danger:hover { background: #b91c1c; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .detail-item { display: flex; flex-direction: column; gap: 4px; }
+    .detail-item.full-width { grid-column: 1 / -1; }
+    .detail-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
+    .detail-value { font-size: 14px; color: #0f172a; }
+    @@media (max-width: 768px) { .filter-bar { flex-direction: column; align-items: stretch; } .filter-left { width: 100%; } .tab-btn { width: 100%; justify-content: center; } .search-input { width: 100%; } .detail-grid { grid-template-columns: 1fr; } }
+</style>
+
+@functions {
+    List<string> GetMaterials(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new();
+        try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
+        catch { return new(); }
+    }
+
+    List<string> GetEquipment(string? json)
+    {
+        if (string.IsNullOrEmpty(json)) return new();
+        try { return JsonSerializer.Deserialize<List<string>>(json) ?? new(); }
+        catch { return new(); }
+    }
+}
